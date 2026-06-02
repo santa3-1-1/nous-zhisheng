@@ -351,6 +351,26 @@
         </div>
       </div>
 
+      <!-- View: Shaping (塑造) -->
+      <div class="view" id="view-shaping">
+        <div class="view-header">
+          <h1>塑造</h1>
+          <div class="header-subtitle">教知声更像你</div>
+        </div>
+        <div class="view-body">
+          <!-- 对话式输入 -->
+          <div style="background:var(--card);border-radius:14px;padding:16px;margin-bottom:16px;border:1px solid var(--border);">
+            <div style="font-size:13px;color:var(--text2);margin-bottom:8px;">告诉知声一条规则</div>
+            <textarea id="shapingInput" placeholder="例如：以后推销电话直接挂掉不用告诉我&#10;例如：如果是我妈打来，不管什么事都转我&#10;例如：工作的事上班时间转我，下班了帮我记下来" style="width:100%;padding:12px 14px;background:#141414;border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:14px;outline:none;min-height:72px;resize:vertical;font-family:inherit;margin-bottom:10px;"></textarea>
+            <button class="btn-full btn-blue" id="btnShaping" onclick="addShaping()">教给知声</button>
+          </div>
+
+          <!-- 已教的规则列表 -->
+          <div style="font-size:13px;color:var(--text3);margin-bottom:8px;">知声已经学会的</div>
+          <div class="cell-group" id="shapingList"></div>
+        </div>
+      </div>
+
       <!-- View: Knowledge -->
       <div class="view" id="view-knowledge">
         <div class="view-header">
@@ -482,6 +502,10 @@
         <span class="tab-icon">📤</span>
         <span class="tab-label">代打</span>
       </button>
+      <button class="tab-btn" data-tab="shaping" onclick="switchTab('shaping')">
+        <span class="tab-icon">✨</span>
+        <span class="tab-label">塑造</span>
+      </button>
       <button class="tab-btn" data-tab="live" onclick="switchTab('live')">
         <span class="tab-icon">🛡️</span>
         <span class="tab-label">实时</span>
@@ -592,6 +616,7 @@
     if (name === 'settings') loadSettings();
     if (name === 'live') initLive();
     if (name === 'outbound') loadOutbound();
+    if (name === 'shaping') loadShaping();
   }
 
   // ==================== API ====================
@@ -708,6 +733,39 @@
     toast('配置完成');
     document.getElementById('tabBar').classList.remove('hidden');
     switchTab('calls');
+  }
+
+  // ==================== Shaping (塑造) ====================
+  async function addShaping() {
+    const input = document.getElementById('shapingInput');
+    const instruction = input.value.trim();
+    if (!instruction) { toast('请输入规则'); return; }
+    btnLoad('btnShaping', true);
+    try {
+      await post('/api/shaping', { instruction });
+      input.value = '';
+      toast('知声学会了');
+      loadShaping();
+    } catch (err) { toast('失败: ' + err.message); }
+    btnLoad('btnShaping', false);
+  }
+
+  async function loadShaping() {
+    try {
+      const items = await api('/api/shaping');
+      const el = document.getElementById('shapingList');
+      if (!items.length) {
+        el.innerHTML = '<div class="empty" style="padding:24px;"><div class="empty-text">还没教过知声什么</div></div>';
+        return;
+      }
+      el.innerHTML = items.map((s, i) => `<div class="cell"><div class="cell-body"><div class="cell-title">${s}</div></div><div class="cell-accessory" onclick="delShaping(${i})" style="cursor:pointer;color:var(--red);font-size:16px;">×</div></div>`).join('');
+    } catch {}
+  }
+
+  async function delShaping(idx) {
+    try { await fetch('/api/shaping/' + idx, { method: 'DELETE' }); } catch {}
+    toast('已删除');
+    loadShaping();
   }
 
   // ==================== Outbound (代打) ====================

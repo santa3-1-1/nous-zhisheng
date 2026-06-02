@@ -16,6 +16,7 @@ import { startAIConversation, stopAIConversation, controlAIConversation } from '
 import { buildSystemPrompt } from './engine/prompt.js';
 import { buildOutboundPrompt } from './engine/outbound-prompt.js';
 import { generateSummary } from './engine/summary.js';
+import { buildRubricPrompt, calculateTransferScore, shouldTransfer, DEFAULT_WEIGHTS } from './engine/rubric.js';
 import { sendTransferNotify } from './transfer/notify.js';
 import { initKnowledge, addKnowledge, searchKnowledge, getAllKnowledge, loadProfileKnowledge } from './rag/knowledge.js';
 import { createCall, endCall, addTranscript, getCalls, getCall } from './db/store.js';
@@ -226,6 +227,68 @@ app.put('/api/profile', (req, res) => {
   // 更新 Profile（Demo 版只更新内存，不写文件）
   Object.assign(profile, req.body);
   res.json({ success: true, profile });
+});
+
+// --- Rubric 评分 API ---
+import OpenAI from 'openai';
+const deepseekClient = new OpenAI({ baseURL: config.deepseek.baseUrl, apiKey: config.deepseek.apiKey });
+
+app.post('/api/rubric/evaluate', async (req, res) => {
+  const { transcript, mode } = req.body;
+  // transcript: [{role:'caller'|'nous', text:'...'}]
+  if (!transcript || transcript.length === 0) return res.json({ shouldTransfer: false, score: 0, rubric: {} });
+
+  const conversationText = transcript.map(t => `${t.role === 'caller' ? '来电方' : '知声'}: ${t.text}`).join('\n');
+  const rubricPrompt = buildRubricPrompt(profile);
+
+  try {
+    const response = await deepseekClient.chat.completions.create({
+      model: config.deepseek.model,
+      messages: [
+        { role: 'system', content: `你是一个转接评分器。根据以下对话和机主画像，对当前对话状态进行 rubric 评分。\n\n## 机主画像\n- 姓名：${profile.identity.name}\n- 必须转接的人：${(profile.rules?.always_transfer||[]).join('、')}\n- 可自动处理的：${(profile.rules?.auto_handle||[]).join('、')}\n- 禁止做的：${(profile.rules?.forbidden_actions||[]).join('、')}\n${profile.shaping?.length > 0 ? '\n## 塑造记录\n' + profile.shaping.map(s => '- ' + s).join('\n') : ''}\n${rubricPrompt}\n\n只输出 JSON，不要其他内容。` },
+        { role: 'user', content: `对话内容：\n${conversationText}\n\n请输出 rubric 评分 JSON：` },
+      ],
+      max_tokens: 200,
+      temperature: 0,
+      response_format: { type: 'json_object' },
+    });
+
+    const raw = response.choices[0].message.content;
+    let rubricScores = {};
+    try { rubricScores = JSON.parse(raw).rubric || JSON.parse(raw); } catch { rubricScores = {}; }
+
+    // 用画像权重（如果有）或默认权重
+    const weights = profile.rubric_weights || DEFAULT_WEIGHTS;
+    const score = calculateTransferScore(rubricScores, weights);
+    const transfer = shouldTransfer(score, mode || 'inbound', profile.transfer_threshold);
+
+    res.json({ shouldTransfer: transfer, score, rubric: rubricScores, threshold: profile.transfer_threshold || 6.0 });
+  } catch (err) {
+    console.error('[Rubric Evaluate Error]', err.message);
+    // 降级：解析失败不阻塞，不转接
+    res.json({ shouldTransfer: false, score: 0, rubric: {}, error: err.message });
+  }
+});
+
+// --- 塑造 API ---
+app.get('/api/shaping', (req, res) => {
+  res.json(profile.shaping || []);
+});
+
+app.post('/api/shaping', (req, res) => {
+  const { instruction } = req.body;
+  if (!instruction) return res.status(400).json({ error: 'instruction required' });
+  if (!profile.shaping) profile.shaping = [];
+  profile.shaping.push(instruction);
+  console.log(`[Shaping] 新增塑造: "${instruction}"`);
+  res.json({ success: true, shaping: profile.shaping });
+});
+
+app.delete('/api/shaping/:index', (req, res) => {
+  const idx = parseInt(req.params.index);
+  if (!profile.shaping || idx < 0 || idx >= profile.shaping.length) return res.status(404).json({ error: 'not found' });
+  profile.shaping.splice(idx, 1);
+  res.json({ success: true, shaping: profile.shaping });
 });
 
 // --- 来电通知（App内轮询） ---

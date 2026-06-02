@@ -130,6 +130,7 @@
         document.getElementById('btnEnd').disabled = false;
 
         // 3. 监听字幕
+        const conversationLog = [];
         trtc.on(TRTC.EVENT.CUSTOM_MESSAGE, (event) => {
           try {
             const msg = JSON.parse(new TextDecoder().decode(event.data));
@@ -137,9 +138,12 @@
               const isMe = msg.sender === callerId;
               addBubble(isMe ? 'user' : 'ai', msg.payload.text);
               
-              // 检测AI说了转接相关的话 → 自动触发转接通知
-              if (!isMe && (msg.payload.text.includes('转接') || msg.payload.text.includes('转给') || msg.payload.text.includes('本人'))) {
-                triggerTransfer();
+              // 记录对话
+              conversationLog.push({ role: isMe ? 'caller' : 'nous', text: msg.payload.text });
+              
+              // AI 回复后 → 异步 rubric 评分判断是否转接
+              if (!isMe) {
+                evaluateRubric(conversationLog);
               }
             }
           } catch {}
@@ -186,6 +190,22 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ taskId, roomId, urgency: 8, callerInfo: callerId }),
         });
+      } catch {}
+    }
+
+    async function evaluateRubric(log) {
+      if (transferTriggered) return;
+      try {
+        const res = await fetch('/api/rubric/evaluate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ transcript: log, mode: 'inbound' }),
+        });
+        const result = await res.json();
+        console.log('[Rubric]', result);
+        if (result.shouldTransfer) {
+          triggerTransfer();
+        }
       } catch {}
     }
   </script>
