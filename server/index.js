@@ -131,16 +131,24 @@ app.post('/api/ai/speak', async (req, res) => {
 
 // --- 转接 ---
 app.post('/api/transfer', async (req, res) => {
-  const { taskId, roomId, summary, urgency, callerInfo } = req.body;
+  const { taskId, roomId, summary: clientSummary, urgency, callerInfo } = req.body;
   if (!taskId || !roomId) return res.status(400).json({ error: 'taskId and roomId required' });
 
   try {
-    // TODO: 确认 ControlAIConversation 的正确参数后加回 Bot 过渡话
-    // 目前直接发通知，不阻塞
-    
-    // 发送企微通知
+    // 根据实际对话内容生成摘要（不用前端硬编码的）
+    let summary = clientSummary || '来电方请求与本人通话';
+    const session = activeSessions.get(taskId);
+    if (session) {
+      const call = getCall(session.callId);
+      if (call?.transcript?.length > 0) {
+        // 有对话记录 → AI 生成转接摘要
+        summary = await generateSummary(call.transcript);
+      }
+    }
+
+    // 发送企微通知（用 AI 生成的摘要）
     await sendTransferNotify({
-      summary: summary || '来电方请求与本人通话',
+      summary,
       urgency: urgency || 7,
       callerInfo: callerInfo || '未知来电',
       roomId,
@@ -148,17 +156,16 @@ app.post('/api/transfer', async (req, res) => {
     });
 
     // 更新通话状态
-    const session = activeSessions.get(taskId);
     if (session) {
       endCall({
         sessionId: session.sessionId,
         action: 'transferred',
-        summary: summary || '已转接',
+        summary,
         duration: Math.floor((Date.now() - session.startTime) / 1000),
       });
     }
 
-    res.json({ success: true, message: '转接通知已发送' });
+    res.json({ success: true, summary, message: '转接通知已发送' });
   } catch (err) {
     console.error('[Transfer Error]', err.message);
     res.status(500).json({ error: err.message });

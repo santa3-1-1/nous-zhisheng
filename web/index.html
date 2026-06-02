@@ -729,7 +729,7 @@
   async function doTransfer() {
     btnLoad('btnTransfer', true); setLive('转接中...', '正在通知', 'connecting');
     try {
-      const data = await post('/api/transfer', { taskId:S.taskId, roomId:v('liveRoomId'), summary:'来电方请求转接', urgency:8, callerInfo:S.uid });
+      const data = await post('/api/transfer', { taskId:S.taskId, roomId:v('liveRoomId'), urgency:8, callerInfo:S.uid });
       if (data.success) { setLive('等待接入', '通知已发送', 'connecting'); addBubble('sys','转接通知已发送'); }
       else setLive('转接失败', data.error, 'off');
     } catch (err) { setLive('转接失败', err.message, 'off'); }
@@ -739,7 +739,7 @@
   async function doAutoTransfer() {
     addBubble('sys', '知声触发自动转接');
     setLive('自动转接', '正在通知', 'connecting');
-    try { await post('/api/transfer', { taskId:S.taskId, roomId:v('liveRoomId'), summary:'知声自动转接', urgency:8, callerInfo:S.uid }); setLive('等待接入', '已通知', 'connecting'); } catch {}
+    try { await post('/api/transfer', { taskId:S.taskId, roomId:v('liveRoomId'), urgency:8, callerInfo:S.uid }); setLive('等待接入', '已通知', 'connecting'); } catch {}
   }
 
   // ==================== Helpers ====================
