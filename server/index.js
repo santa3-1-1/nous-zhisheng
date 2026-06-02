@@ -146,13 +146,24 @@ app.post('/api/transfer', async (req, res) => {
       }
     }
 
-    // 发送企微通知（用 AI 生成的摘要）
+    // 发送企微通知（兜底）+ 推到 App 内通知队列
     await sendTransferNotify({
       summary,
       urgency: urgency || 7,
       callerInfo: callerInfo || '未知来电',
       roomId,
       taskId,
+    });
+
+    // 推到 App 内通知队列（机主轮询获取）
+    pendingNotifications.push({
+      type: 'transfer',
+      taskId,
+      roomId,
+      summary,
+      urgency: urgency || 7,
+      callerInfo: callerInfo || '未知来电',
+      timestamp: Date.now(),
     });
 
     // 更新通话状态
@@ -214,6 +225,54 @@ app.put('/api/profile', (req, res) => {
   // 更新 Profile（Demo 版只更新内存，不写文件）
   Object.assign(profile, req.body);
   res.json({ success: true, profile });
+});
+
+// --- 来电通知（App内轮询） ---
+// 存储待处理的转接通知
+const pendingNotifications = [];
+
+app.get('/api/notifications', (req, res) => {
+  // 机主App轮询：有新通知就返回，没有就返回空
+  const pending = pendingNotifications.splice(0);
+  res.json(pending);
+});
+
+// --- 来电方入口：直接启动AI对话 ---
+app.post('/api/call/start', async (req, res) => {
+  const { callerId, ownerUserId } = req.body;
+  if (!callerId) return res.status(400).json({ error: 'callerId required' });
+
+  // 自动创建房间号
+  const roomId = Math.floor(10000 + Math.random() * 90000);
+  
+  try {
+    const ragContext = await searchKnowledge('用户信息 偏好 规则', 5);
+    const systemPrompt = buildSystemPrompt(profile, ragContext);
+    
+    const result = await startAIConversation({
+      roomId,
+      targetUserId: callerId,
+      systemPrompt,
+      profile,
+    });
+
+    const sessionId = `session_${roomId}_${Date.now()}`;
+    const callId = createCall({
+      sessionId,
+      taskId: result.TaskId,
+      roomId,
+      callerId,
+    });
+
+    activeSessions.set(result.TaskId, {
+      sessionId, callId, roomId, targetUserId: callerId, startTime: Date.now(),
+    });
+
+    res.json({ success: true, taskId: result.TaskId, roomId, sdkAppId: config.trtc.sdkAppId });
+  } catch (err) {
+    console.error('[Call Start Error]', err.message);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // =============================================

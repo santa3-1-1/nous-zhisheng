@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#0a0a0a">
+  <title>知声 — 通话</title>
+  <style>
+    :root { --bg:#0a0a0a; --card:#1c1c1e; --border:#2c2c2e; --blue:#0a84ff; --green:#30d158; --orange:#ff9f0a; --red:#ff453a; --text:#fff; --text2:#ebebf5cc; --text3:#ebebf54d; }
+    * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+    body { font-family:-apple-system,'SF Pro Display',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:32px 24px; -webkit-font-smoothing:antialiased; }
+    
+    .container { max-width:400px; width:100%; text-align:center; }
+    .avatar { width:80px; height:80px; border-radius:50%; background:linear-gradient(135deg,#667eea,#764ba2); display:flex; align-items:center; justify-content:center; margin:0 auto 16px; font-size:32px; }
+    h1 { font-size:22px; font-weight:700; margin-bottom:4px; }
+    .subtitle { font-size:14px; color:var(--text2); margin-bottom:32px; }
+    
+    .status-card { background:var(--card); border-radius:16px; padding:20px; margin-bottom:20px; border:1px solid var(--border); }
+    .status-dot { display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:8px; vertical-align:middle; }
+    .status-dot.live { background:var(--green); animation:pulse 2s infinite; }
+    .status-dot.connecting { background:var(--orange); animation:pulse 1s infinite; }
+    .status-dot.off { background:#555; }
+    @keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.4} }
+    .status-text { font-size:15px; vertical-align:middle; }
+
+    .chat-area { background:var(--card); border-radius:16px; padding:16px; margin-bottom:20px; min-height:200px; max-height:320px; overflow-y:auto; display:flex; flex-direction:column; gap:8px; border:1px solid var(--border); scroll-behavior:smooth; text-align:left; }
+    .chat-area:empty::before { content:'通话开始后对话会显示在这里'; color:var(--text3); font-size:14px; text-align:center; margin:auto; }
+    .bubble { max-width:80%; padding:10px 14px; border-radius:16px; font-size:15px; line-height:1.4; animation:fadeIn 0.2s; }
+    .bubble-ai { background:rgba(10,132,255,0.12); color:#a5c5f7; align-self:flex-start; border-bottom-left-radius:4px; }
+    .bubble-user { background:rgba(48,209,88,0.12); color:#9be6b4; align-self:flex-end; border-bottom-right-radius:4px; }
+    .bubble-sys { align-self:center; font-size:12px; color:var(--text3); padding:4px 12px; background:rgba(255,255,255,0.04); border-radius:12px; }
+    @keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:none} }
+
+    .btn { width:100%; padding:16px; border:none; border-radius:14px; font-size:16px; font-weight:600; cursor:pointer; transition:opacity 0.2s; position:relative; }
+    .btn:active { opacity:0.8; }
+    .btn:disabled { opacity:0.4; cursor:not-allowed; }
+    .btn-green { background:var(--green); color:#fff; }
+    .btn-red { background:var(--red); color:#fff; margin-top:10px; }
+    .btn.loading { color:transparent; }
+    .btn.loading::after { content:''; position:absolute; width:18px; height:18px; border:2px solid rgba(255,255,255,0.3); border-top-color:#fff; border-radius:50%; animation:spin 0.6s linear infinite; top:50%; left:50%; margin:-9px 0 0 -9px; }
+    @keyframes spin { to{transform:rotate(360deg)} }
+
+    .info { font-size:12px; color:var(--text3); margin-top:20px; line-height:1.6; }
+    .powered { font-size:11px; color:var(--text3); margin-top:32px; opacity:0.5; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="avatar">📞</div>
+    <h1 id="ownerName">知声</h1>
+    <p class="subtitle" id="ownerDesc">AI 语音助手正在为主人代接</p>
+
+    <div class="status-card">
+      <span class="status-dot off" id="dot"></span>
+      <span class="status-text" id="statusText">点击下方按钮开始通话</span>
+    </div>
+
+    <div class="chat-area" id="chat"></div>
+
+    <button class="btn btn-green" id="btnStart" onclick="startCall()">开始通话</button>
+    <button class="btn btn-red" id="btnEnd" onclick="endCall()" disabled>结束通话</button>
+
+    <p class="info">对麦克风说话，知声会代为回应。<br>如果需要，知声会转接给本人。</p>
+    <p class="powered">Powered by 知声 Nous</p>
+  </div>
+
+  <script src="/TRTC.js"></script>
+  <script>
+    const callerId = 'visitor_' + Math.random().toString(36).slice(2, 8);
+    let trtc = null, taskId = null, roomId = null;
+
+    // Load owner info
+    fetch('/api/profile').then(r=>r.json()).then(p => {
+      if (p.identity?.nickname) {
+        document.getElementById('ownerName').textContent = p.identity.nickname + ' 的知声';
+        document.getElementById('ownerDesc').textContent = `${p.identity.nickname}现在不方便，知声正在代接`;
+      }
+    }).catch(()=>{});
+
+    function setStatus(text, type) {
+      document.getElementById('statusText').textContent = text;
+      const dot = document.getElementById('dot');
+      dot.className = 'status-dot ' + (type || 'off');
+    }
+
+    function addBubble(type, text) {
+      const chat = document.getElementById('chat');
+      const d = document.createElement('div');
+      d.className = 'bubble bubble-' + type;
+      d.textContent = text;
+      chat.appendChild(d);
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    function btnLoad(id, on) {
+      const b = document.getElementById(id);
+      b.classList.toggle('loading', on);
+      b.disabled = on;
+    }
+
+    async function startCall() {
+      btnLoad('btnStart', true);
+      setStatus('正在连接...', 'connecting');
+
+      try {
+        // 1. 请求后端创建房间 + 启动AI
+        const res = await fetch('/api/call/start', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ callerId }),
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error);
+
+        taskId = data.taskId;
+        roomId = data.roomId;
+
+        // 2. 获取 UserSig 进入房间
+        const sigRes = await fetch(`/api/usersig/${callerId}`);
+        const { sdkAppId, userId, userSig } = await sigRes.json();
+
+        trtc = TRTC.create();
+        await trtc.enterRoom({ sdkAppId, userId, userSig, roomId });
+        await trtc.startLocalAudio({ option: { profile: 'speech' } });
+
+        setStatus('通话中 — 请说话', 'live');
+        addBubble('sys', '已接通，请说话');
+        document.getElementById('btnStart').disabled = true;
+        document.getElementById('btnEnd').disabled = false;
+
+        // 3. 监听字幕
+        trtc.on(TRTC.EVENT.CUSTOM_MESSAGE, (event) => {
+          try {
+            const msg = JSON.parse(new TextDecoder().decode(event.data));
+            if (msg.type === 10000 && msg.payload.end) {
+              const isMe = msg.sender === callerId;
+              addBubble(isMe ? 'user' : 'ai', msg.payload.text);
+            }
+          } catch {}
+        });
+
+        trtc.on(TRTC.EVENT.REMOTE_AUDIO_AVAILABLE, () => {});
+
+        // 监听机主接入（远端用户进房 → 说明机主来了）
+        trtc.on(TRTC.EVENT.REMOTE_USER_ENTER, (event) => {
+          if (event.userId.startsWith('owner_')) {
+            addBubble('sys', '本人已接入通话');
+            setStatus('已转接给本人', 'live');
+          }
+        });
+
+      } catch (err) {
+        setStatus('连接失败: ' + err.message, 'off');
+        document.getElementById('btnStart').disabled = false;
+      }
+      btnLoad('btnStart', false);
+    }
+
+    async function endCall() {
+      if (trtc) {
+        await trtc.exitRoom();
+        trtc.destroy();
+        trtc = null;
+      }
+      setStatus('通话已结束', 'off');
+      addBubble('sys', '通话结束');
+      document.getElementById('btnStart').disabled = false;
+      document.getElementById('btnEnd').disabled = true;
+    }
+  </script>
+</body>
+</html>
