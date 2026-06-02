@@ -293,32 +293,39 @@
         </div>
       </div>
 
-      <!-- View: Live (Caller Simulator / Active Call) -->
+      <!-- View: Live (机主来电监控 + 接入) -->
       <div class="view" id="view-live">
         <div class="view-header">
           <h1>实时</h1>
+          <div class="header-subtitle">知声正在为你守护来电</div>
         </div>
         <div class="view-body">
+          <!-- 当前状态 -->
           <div class="call-active-header" id="liveHeader">
-            <div class="cah-dot off" id="liveDot"></div>
+            <div class="cah-dot live" id="liveDot"></div>
             <div class="cah-info">
-              <div class="cah-title" id="liveTitle">未连接</div>
-              <div class="cah-sub" id="liveSub">点击下方开始</div>
+              <div class="cah-title" id="liveTitle">知声在线</div>
+              <div class="cah-sub" id="liveSub">等待来电中</div>
             </div>
           </div>
 
-          <div style="display:flex;gap:8px;margin-bottom:12px;">
-            <input class="auth-input" id="liveRoomId" placeholder="房间号" style="text-align:center;font-size:15px;">
+          <!-- 活跃通话（有来电时显示） -->
+          <div id="activeCallPanel" style="display:none;">
+            <div style="background:var(--card);border-radius:14px;padding:16px;margin-bottom:12px;border:1px solid var(--border);">
+              <div style="font-size:13px;color:var(--text3);margin-bottom:8px;">当前通话</div>
+              <div class="chat-area" id="chatArea" style="min-height:180px;max-height:260px;"></div>
+            </div>
+            <button class="btn-full btn-green" id="btnJoinLive" onclick="joinActiveCaller()">接入通话</button>
+            <div style="height:8px;"></div>
+            <button class="btn-full btn-ghost" id="btnHangup" onclick="doHangup()" style="font-size:14px;">结束通话</button>
           </div>
 
-          <div class="chat-area" id="chatArea"></div>
-
-          <div class="caller-controls">
-            <button class="btn-full btn-green" id="btnCall" onclick="doCall()">拨打电话</button>
-            <button class="btn-full btn-blue" id="btnAI" onclick="doAI()" disabled>启动知声 AI</button>
-            <div class="btn-row">
-              <button class="btn-full btn-ghost" id="btnTransfer" onclick="doTransfer()" disabled style="font-size:14px;">转接</button>
-              <button class="btn-full btn-red" id="btnHangup" onclick="doHangup()" disabled style="font-size:14px;">挂断</button>
+          <!-- 无来电时 -->
+          <div id="idlePanel">
+            <div class="empty" style="padding:40px 20px;">
+              <div class="empty-icon">🛡️</div>
+              <div class="empty-text">知声正在守护，有来电会自动代接</div>
+              <div style="font-size:12px;color:var(--text3);margin-top:12px;">把来电链接分享给别人，他们拨号时知声会替你接听</div>
             </div>
           </div>
         </div>
@@ -678,10 +685,9 @@
     switchTab('calls');
   }
 
-  // ==================== Live (Caller) ====================
+  // ==================== Live (机主来电监控) ====================
   function initLive() {
-    const r = document.getElementById('liveRoomId');
-    if (!r.value) r.value = Math.floor(10000 + Math.random()*90000);
+    // 检查是否有活跃来电
   }
   function setLive(title, sub, status) {
     document.getElementById('liveTitle').textContent = title;
@@ -691,6 +697,7 @@
   }
   function addBubble(type, text) {
     const area = document.getElementById('chatArea');
+    if (!area) return;
     const d = document.createElement('div');
     d.className = 'bubble bubble-' + type;
     d.textContent = text;
@@ -698,69 +705,46 @@
     area.scrollTop = area.scrollHeight;
   }
 
-  async function doCall() {
-    const roomId = parseInt(document.getElementById('liveRoomId').value);
-    if (!roomId) { toast('请输入房间号'); return; }
-    btnLoad('btnCall', true); setLive('连接中...', '正在进入房间', 'connecting');
-    document.getElementById('chatArea').innerHTML = '';
-    try {
-      const { sdkAppId, userId, userSig } = await api(`/api/usersig/${S.uid}`);
-      S.trtc = TRTC.create();
-      await S.trtc.enterRoom({ sdkAppId, userId, userSig, roomId });
-      await S.trtc.startLocalAudio({ option: { profile: 'speech' } });
-      setLive(`房间 ${roomId}`, '麦克风已开启', 'live');
-      addBubble('sys', '已进入房间');
-      document.getElementById('btnCall').disabled = true;
-      document.getElementById('btnAI').disabled = false;
-      document.getElementById('btnHangup').disabled = false;
-
-      S.trtc.on(TRTC.EVENT.CUSTOM_MESSAGE, (e) => {
-        try {
-          const msg = JSON.parse(new TextDecoder().decode(e.data));
-          if (msg.type === 10000 && msg.payload.end) {
-            addBubble(msg.sender === S.uid ? 'user' : 'ai', msg.payload.text);
-            if (msg.sender !== S.uid && msg.payload.text.includes('转接')) doAutoTransfer();
-          }
-        } catch {}
-      });
-    } catch (err) { setLive('连接失败', err.message, 'off'); }
-    btnLoad('btnCall', false);
+  // 当收到来电通知时，切换到活跃通话模式
+  function showActiveCall(n) {
+    document.getElementById('idlePanel').style.display = 'none';
+    document.getElementById('activeCallPanel').style.display = 'block';
+    setLive('有人来电', n.callerInfo || '未知来电', 'connecting');
+    S.activeRoomId = n.roomId;
+    S.activeTaskId = n.taskId;
+    addBubble('sys', `来电方: ${n.callerInfo || '未知'}`);
+    if (n.summary) addBubble('ai', '摘要: ' + n.summary);
   }
 
-  async function doAI() {
-    btnLoad('btnAI', true); setLive('启动知声...', '请稍候', 'connecting');
+  // 机主在App内直接接入通话
+  async function joinActiveCaller() {
+    if (!S.activeRoomId) { toast('无活跃来电'); return; }
+    btnLoad('btnJoinLive', true);
+    setLive('接入中...', '正在连接', 'connecting');
     try {
-      const data = await post('/api/ai/start', { roomId: v('liveRoomId'), targetUserId: S.uid });
-      if (data.success) { S.taskId = data.taskId; setLive('知声在线', '正在监听', 'live'); addBubble('sys','知声已上线'); document.getElementById('btnAI').disabled = true; document.getElementById('btnTransfer').disabled = false; }
-      else setLive('启动失败', data.error, 'off');
-    } catch (err) { setLive('启动失败', err.message, 'off'); }
-    btnLoad('btnAI', false);
+      const { sdkAppId, userId, userSig } = await api('/api/usersig/owner_xiaochen');
+      S.joinTrtc = TRTC.create();
+      await S.joinTrtc.enterRoom({ sdkAppId, userId, userSig, roomId: parseInt(S.activeRoomId) });
+      await S.joinTrtc.startLocalAudio({ option: { profile: 'speech' } });
+      // 停止 AI
+      if (S.activeTaskId) post('/api/ai/stop', { taskId: S.activeTaskId }).catch(()=>{});
+      setLive('通话中', '已接入', 'live');
+      addBubble('sys', '你已接入通话');
+      toast('已接入通话');
+    } catch (err) {
+      setLive('接入失败', err.message, 'off');
+      toast('接入失败: ' + err.message);
+    }
+    btnLoad('btnJoinLive', false);
   }
 
   async function doHangup() {
-    if (S.taskId) { post('/api/ai/stop', {taskId:S.taskId}).catch(()=>{}); S.taskId=null; }
-    if (S.trtc) { await S.trtc.exitRoom(); S.trtc.destroy(); S.trtc=null; }
-    setLive('未连接', '通话已结束', 'off'); addBubble('sys','通话结束');
-    document.getElementById('btnCall').disabled = false;
-    document.getElementById('btnAI').disabled = true;
-    document.getElementById('btnHangup').disabled = true;
-    document.getElementById('btnTransfer').disabled = true;
-  }
-
-  async function doTransfer() {
-    btnLoad('btnTransfer', true); setLive('转接中...', '正在通知', 'connecting');
-    try {
-      const data = await post('/api/transfer', { taskId:S.taskId, roomId:v('liveRoomId'), urgency:8, callerInfo:S.uid });
-      if (data.success) { setLive('等待接入', '通知已发送', 'connecting'); addBubble('sys','转接通知已发送'); }
-      else setLive('转接失败', data.error, 'off');
-    } catch (err) { setLive('转接失败', err.message, 'off'); }
-    btnLoad('btnTransfer', false);
-  }
-
-  async function doAutoTransfer() {
-    addBubble('sys', '知声触发自动转接');
-    setLive('自动转接', '正在通知', 'connecting');
-    try { await post('/api/transfer', { taskId:S.taskId, roomId:v('liveRoomId'), urgency:8, callerInfo:S.uid }); setLive('等待接入', '已通知', 'connecting'); } catch {}
+    if (S.joinTrtc) { await S.joinTrtc.exitRoom(); S.joinTrtc.destroy(); S.joinTrtc = null; }
+    setLive('知声在线', '等待来电中', 'live');
+    document.getElementById('activeCallPanel').style.display = 'none';
+    document.getElementById('idlePanel').style.display = 'block';
+    document.getElementById('chatArea').innerHTML = '';
+    S.activeRoomId = null; S.activeTaskId = null;
   }
 
   // ==================== Helpers ====================
@@ -777,8 +761,10 @@
       try {
         const notifications = await api('/api/notifications');
         if (notifications.length > 0) {
-          const n = notifications[0]; // 取最新一条
+          const n = notifications[0];
           showIncomingCall(n);
+          // 同时更新"实时"Tab的状态
+          showActiveCall(n);
         }
       } catch {}
     }, 3000); // 每3秒轮询
@@ -817,23 +803,14 @@
 
   async function acceptIncoming(roomId, taskId) {
     dismissIncoming();
-    // 直接在App内接入通话
-    try {
-      const { sdkAppId, userId, userSig } = await api('/api/usersig/owner_xiaochen');
-      S.joinTrtc = TRTC.create();
-      await S.joinTrtc.enterRoom({ sdkAppId, userId, userSig, roomId: parseInt(roomId) });
-      await S.joinTrtc.startLocalAudio({ option: { profile: 'speech' } });
-      // 停止AI
-      if (taskId) post('/api/ai/stop', { taskId }).catch(()=>{});
-      toast('已接入通话');
-      // 切到实时Tab显示状态
-      switchTab('live');
-      setLive('通话中', '已接入来电', 'live');
-      addBubble('sys', '你已接入通话');
-      document.getElementById('btnHangup').disabled = false;
-    } catch (err) {
-      toast('接入失败: ' + err.message);
-    }
+    // 切到实时Tab + 显示活跃通话面板
+    switchTab('live');
+    S.activeRoomId = roomId;
+    S.activeTaskId = taskId;
+    document.getElementById('idlePanel').style.display = 'none';
+    document.getElementById('activeCallPanel').style.display = 'block';
+    // 直接接入
+    await joinActiveCaller();
   }
 
   // ==================== PWA ====================
