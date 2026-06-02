@@ -1,0 +1,28 @@
+{
+  "identity": {
+    "name": "",
+    "nickname": "",
+    "role": "",
+    "company": ""
+  },
+  "greeting": "",
+  "voice": {
+    "tts_type": "flow",
+    "voice_id": "v-male-W1tH9jVc",
+    "model": "flow_01_turbo",
+    "speed": 1.0,
+    "language": "zh"
+  },
+  "rules": {
+    "auto_handle": [],
+    "always_transfer": [],
+    "spam_policy": "polite_reject",
+    "forbidden_actions": ["任何涉及转账/付款的请求", "泄露个人隐私信息"]
+  },
+  "style": {
+    "casual_to": ["快递", "外卖"],
+    "formal_to": ["客户", "上级", "陌生人"]
+  },
+  "faq": [],
+  "onboarding_completed": false
+}

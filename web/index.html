@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#0a0a0a">
+  <link rel="manifest" href="/manifest.json">
+  <title>知声</title>
+  <style>
+    :root {
+      --bg: #0a0a0a; --bg-card: #141414; --bg-input: #1a1a1a; --bg-elevated: #1c1c1e;
+      --border: #2c2c2e; --border-hover: #3a3a3c;
+      --text: #fff; --text-2: #ebebf5cc; --text-3: #ebebf54d;
+      --blue: #0a84ff; --green: #30d158; --orange: #ff9f0a; --red: #ff453a;
+      --tab-h: 82px; --safe-b: env(safe-area-inset-bottom, 0px);
+      --radius: 14px; --radius-sm: 10px;
+      --transition: 0.2s ease;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body {
+      font-family: -apple-system, 'SF Pro Display', 'SF Pro Text', BlinkMacSystemFont, sans-serif;
+      background: var(--bg); color: var(--text); min-height: 100vh;
+      overflow: hidden; position: fixed; width: 100%; height: 100%;
+      -webkit-font-smoothing: antialiased;
+    }
+    #app { height: 100%; display: flex; flex-direction: column; }
+
+    /* ===== Splash / Loading ===== */
+    #splash {
+      position: fixed; inset: 0; z-index: 9999; background: var(--bg);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      transition: opacity 0.4s ease;
+    }
+    #splash.hide { opacity: 0; pointer-events: none; }
+    #splash .logo-icon { font-size: 48px; margin-bottom: 16px; }
+    #splash .logo-text { font-size: 20px; font-weight: 700; letter-spacing: -0.5px; }
+    #splash .loading-bar { width: 120px; height: 3px; background: #222; border-radius: 2px; margin-top: 24px; overflow: hidden; }
+    #splash .loading-bar::after { content: ''; display: block; width: 40%; height: 100%; background: var(--blue); border-radius: 2px; animation: loadSlide 1s ease infinite; }
+    @keyframes loadSlide { 0% { transform: translateX(-100%); } 100% { transform: translateX(350%); } }
+
+    /* ===== Auth Page ===== */
+    .auth-page {
+      position: fixed; inset: 0; z-index: 8000; background: var(--bg);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 40px 32px;
+    }
+    .auth-page.hidden { display: none; }
+    .auth-logo { font-size: 44px; margin-bottom: 12px; }
+    .auth-title { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
+    .auth-subtitle { font-size: 14px; color: var(--text-2); margin-bottom: 36px; text-align: center; }
+    .auth-form { width: 100%; max-width: 320px; display: flex; flex-direction: column; gap: 12px; }
+    .auth-input {
+      width: 100%; padding: 14px 16px; background: var(--bg-elevated); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); color: var(--text); font-size: 16px; outline: none;
+      transition: border-color var(--transition);
+    }
+    .auth-input:focus { border-color: var(--blue); }
+    .auth-input::placeholder { color: var(--text-3); }
+    .auth-btn {
+      width: 100%; padding: 15px; background: var(--blue); color: #fff; border: none;
+      border-radius: var(--radius-sm); font-size: 16px; font-weight: 600;
+      cursor: pointer; transition: opacity var(--transition); position: relative;
+    }
+    .auth-btn:active { opacity: 0.8; }
+    .auth-btn:disabled { opacity: 0.5; }
+    .auth-btn.loading { color: transparent; }
+    .auth-btn.loading::after { content:''; position:absolute; width:18px; height:18px; border:2px solid rgba(255,255,255,0.3); border-top-color:#fff; border-radius:50%; animation:spin 0.6s linear infinite; top:50%; left:50%; margin:-9px 0 0 -9px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .auth-divider { display: flex; align-items: center; gap: 12px; margin: 4px 0; color: var(--text-3); font-size: 12px; }
+    .auth-divider::before, .auth-divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+    .auth-switch { color: var(--blue); font-size: 14px; text-align: center; cursor: pointer; margin-top: 4px; background: none; border: none; }
+    .auth-error { color: var(--red); font-size: 12px; text-align: center; min-height: 16px; }
+
+    /* ===== Tab Bar (Bottom) ===== */
+    .tab-bar {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
+      height: var(--tab-h); padding-bottom: var(--safe-b);
+      background: rgba(28, 28, 30, 0.92);
+      backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+      border-top: 0.5px solid rgba(255,255,255,0.08);
+      display: flex; align-items: flex-start; justify-content: space-around;
+      padding-top: 8px;
+    }
+    .tab-bar.hidden { display: none; }
+    .tab-btn {
+      display: flex; flex-direction: column; align-items: center; gap: 3px;
+      background: none; border: none; color: var(--text-3); cursor: pointer;
+      padding: 4px 16px; transition: color var(--transition);
+    }
+    .tab-btn.active { color: var(--blue); }
+    .tab-btn .tab-icon { font-size: 22px; height: 26px; display: flex; align-items: center; justify-content: center; }
+    .tab-btn .tab-label { font-size: 10px; font-weight: 500; }
+    .tab-btn .tab-badge {
+      position: absolute; top: -2px; right: -6px; width: 16px; height: 16px;
+      background: var(--red); border-radius: 50%; font-size: 9px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center; color: #fff;
+    }
+    .tab-btn .tab-icon { position: relative; }
+
+    /* ===== Pages ===== */
+    .page-stack {
+      flex: 1; position: relative; overflow: hidden;
+      padding-bottom: var(--tab-h);
+    }
+    .view {
+      position: absolute; inset: 0; overflow-y: auto; overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+      display: none; opacity: 0;
+      transition: opacity 0.25s ease, transform 0.25s ease;
+      padding: 0 0 20px;
+    }
+    .view.active { display: block; opacity: 1; }
+    .view-header {
+      position: sticky; top: 0; z-index: 10; padding: 16px 20px 12px;
+      background: rgba(10, 10, 10, 0.88);
+      backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    }
+    .view-header h1 { font-size: 28px; font-weight: 700; letter-spacing: -0.5px; }
+    .view-header .header-subtitle { font-size: 13px; color: var(--text-3); margin-top: 2px; }
+    .view-body { padding: 0 20px; }
+
+    /* ===== List Cells (iOS style) ===== */
+    .cell-group { background: var(--bg-elevated); border-radius: var(--radius); overflow: hidden; margin-bottom: 16px; }
+    .cell {
+      display: flex; align-items: center; padding: 13px 16px; gap: 12px;
+      border-bottom: 0.5px solid var(--border); cursor: pointer;
+      transition: background var(--transition);
+    }
+    .cell:last-child { border-bottom: none; }
+    .cell:active { background: rgba(255,255,255,0.04); }
+    .cell-icon { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+    .cell-body { flex: 1; min-width: 0; }
+    .cell-title { font-size: 15px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .cell-subtitle { font-size: 13px; color: var(--text-3); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .cell-accessory { color: var(--text-3); font-size: 12px; flex-shrink: 0; display: flex; align-items: center; gap: 4px; }
+    .cell-accessory .chevron { font-size: 14px; opacity: 0.4; }
+
+    /* ===== Call List (Phone App style) ===== */
+    .call-cell { padding: 14px 16px; }
+    .call-cell .call-top { display: flex; justify-content: space-between; align-items: center; }
+    .call-cell .call-name { font-size: 16px; font-weight: 500; }
+    .call-cell .call-name.missed { color: var(--red); }
+    .call-cell .call-time { font-size: 13px; color: var(--text-3); }
+    .call-cell .call-bottom { display: flex; align-items: center; gap: 6px; margin-top: 3px; }
+    .call-cell .call-type { font-size: 12px; }
+    .call-cell .call-summary { font-size: 13px; color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    /* ===== Badges ===== */
+    .pill { font-size: 11px; padding: 2px 8px; border-radius: 6px; font-weight: 600; }
+    .pill-green { background: rgba(48,209,88,0.15); color: var(--green); }
+    .pill-orange { background: rgba(255,159,10,0.15); color: var(--orange); }
+    .pill-blue { background: rgba(10,132,255,0.15); color: var(--blue); }
+    .pill-gray { background: rgba(152,152,157,0.15); color: #98989d; }
+
+    /* ===== Forms ===== */
+    .form-section { margin-bottom: 20px; }
+    .form-section-title { font-size: 13px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.5px; padding: 0 16px; margin-bottom: 6px; }
+    .form-cell { display: flex; align-items: center; padding: 12px 16px; border-bottom: 0.5px solid var(--border); }
+    .form-cell:last-child { border-bottom: none; }
+    .form-cell label { font-size: 15px; width: 80px; flex-shrink: 0; }
+    .form-cell input, .form-cell textarea {
+      flex: 1; background: none; border: none; color: var(--text); font-size: 15px; outline: none;
+      font-family: inherit;
+    }
+    .form-cell input::placeholder, .form-cell textarea::placeholder { color: var(--text-3); }
+    .form-cell textarea { min-height: 44px; resize: none; line-height: 1.4; }
+
+    /* ===== Buttons ===== */
+    .btn-full {
+      width: 100%; padding: 15px; border: none; border-radius: var(--radius-sm);
+      font-size: 16px; font-weight: 600; cursor: pointer;
+      transition: opacity var(--transition); position: relative;
+    }
+    .btn-full:active { opacity: 0.8; }
+    .btn-full:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-full.loading { color: transparent; }
+    .btn-full.loading::after { content:''; position:absolute; width:18px; height:18px; border:2px solid rgba(255,255,255,0.3); border-top-color:#fff; border-radius:50%; animation:spin 0.6s linear infinite; top:50%; left:50%; margin:-9px 0 0 -9px; }
+    .btn-blue { background: var(--blue); color: #fff; }
+    .btn-green { background: var(--green); color: #fff; }
+    .btn-red { background: var(--red); color: #fff; }
+    .btn-ghost { background: var(--bg-elevated); color: var(--text); border: 1px solid var(--border); }
+    .btn-row { display: flex; gap: 10px; }
+    .btn-row .btn-full { flex: 1; }
+
+    /* ===== Onboarding ===== */
+    .ob-page { padding: 60px 24px 40px; display: flex; flex-direction: column; min-height: 100%; }
+    .ob-progress { display: flex; gap: 4px; margin-bottom: 32px; }
+    .ob-progress .bar { flex: 1; height: 3px; border-radius: 2px; background: #333; transition: background 0.3s; }
+    .ob-progress .bar.done { background: var(--blue); }
+    .ob-progress .bar.active { background: var(--blue); }
+    .ob-step { display: none; flex: 1; flex-direction: column; animation: fadeUp 0.3s ease; }
+    .ob-step.active { display: flex; }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+    .ob-step h2 { font-size: 24px; font-weight: 700; margin-bottom: 6px; }
+    .ob-step .ob-desc { font-size: 14px; color: var(--text-2); margin-bottom: 28px; line-height: 1.5; }
+    .ob-step .form-section { flex: 1; }
+    .ob-actions { margin-top: auto; padding-top: 20px; }
+
+    /* ===== Caller (Chat UI) ===== */
+    .call-active-header {
+      display: flex; align-items: center; gap: 10px; padding: 12px 16px;
+      background: var(--bg-elevated); border-radius: var(--radius); margin-bottom: 12px;
+    }
+    .call-active-header .cah-dot { width: 10px; height: 10px; border-radius: 50%; }
+    .call-active-header .cah-dot.live { background: var(--green); animation: pulse 2s infinite; }
+    .call-active-header .cah-dot.connecting { background: var(--orange); animation: pulse 1s infinite; }
+    .call-active-header .cah-dot.off { background: #555; }
+    @keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.4} }
+    .call-active-header .cah-info { flex: 1; }
+    .call-active-header .cah-title { font-size: 14px; font-weight: 600; }
+    .call-active-header .cah-sub { font-size: 12px; color: var(--text-3); }
+
+    .chat-area {
+      flex: 1; overflow-y: auto; padding: 12px 0; display: flex; flex-direction: column; gap: 8px;
+      min-height: 240px; scroll-behavior: smooth;
+    }
+    .chat-area:empty::before { content: '通话对话将显示在这里'; color: var(--text-3); font-size: 14px; align-self: center; margin-top: 80px; }
+    .bubble { max-width: 78%; padding: 10px 14px; border-radius: 16px; font-size: 15px; line-height: 1.4; animation: fadeUp 0.2s ease; }
+    .bubble-ai { background: var(--bg-elevated); color: var(--text-2); align-self: flex-start; border-bottom-left-radius: 4px; }
+    .bubble-user { background: var(--blue); color: #fff; align-self: flex-end; border-bottom-right-radius: 4px; }
+    .bubble-sys { align-self: center; font-size: 12px; color: var(--text-3); padding: 4px 12px; background: rgba(255,255,255,0.04); border-radius: 12px; }
+
+    .caller-controls { padding-top: 12px; display: flex; flex-direction: column; gap: 8px; }
+
+    /* ===== Knowledge ===== */
+    .knowledge-input-bar { display: flex; gap: 8px; margin-bottom: 14px; }
+    .knowledge-input-bar input { flex: 1; padding: 12px 14px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); font-size: 14px; outline: none; }
+    .knowledge-input-bar input:focus { border-color: var(--blue); }
+    .knowledge-input-bar button { padding: 12px 18px; background: var(--blue); color: #fff; border: none; border-radius: var(--radius-sm); font-size: 14px; font-weight: 600; cursor: pointer; flex-shrink: 0; }
+
+    /* ===== Toast ===== */
+    .toast {
+      position: fixed; top: 60px; left: 50%; transform: translateX(-50%) translateY(-20px);
+      background: var(--bg-elevated); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 12px 20px; font-size: 14px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+      opacity: 0; transition: all 0.3s ease; pointer-events: none; z-index: 9999;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* ===== Empty State ===== */
+    .empty { text-align: center; padding: 60px 20px; }
+    .empty-icon { font-size: 40px; margin-bottom: 12px; opacity: 0.5; }
+    .empty-text { font-size: 15px; color: var(--text-3); }
+    .empty-action { margin-top: 16px; }
+    .empty-action button { background: var(--blue); color: #fff; border: none; border-radius: var(--radius-sm); padding: 10px 24px; font-size: 14px; font-weight: 600; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <!-- Splash Screen -->
+  <div id="splash">
+    <div class="logo-icon">📞</div>
+    <div class="logo-text">知声</div>
+    <div class="loading-bar"></div>
+  </div>
+
+  <!-- Auth Screen -->
+  <div class="auth-page hidden" id="authPage">
+    <div class="auth-logo">📞</div>
+    <div class="auth-title">知声</div>
+    <div class="auth-subtitle">你的 AI 来电代接助手</div>
+    <div class="auth-form">
+      <input class="auth-input" id="authPhone" type="tel" placeholder="手机号" maxlength="11">
+      <input class="auth-input hidden" id="authCode" type="text" placeholder="验证码" maxlength="6">
+      <div class="auth-error" id="authError"></div>
+      <button class="auth-btn" id="authBtn" onclick="handleAuth()">获取验证码</button>
+      <div class="auth-divider">或</div>
+      <button class="auth-btn" style="background:var(--bg-elevated);color:var(--text);" onclick="quickLogin()">体验模式（免登录）</button>
+    </div>
+  </div>
+
+  <div id="app" style="display:none;">
+    <!-- Page Stack -->
+    <div class="page-stack">
+      <!-- View: Calls (Home) -->
+      <div class="view active" id="view-calls">
+        <div class="view-header">
+          <h1>通话</h1>
+          <div class="header-subtitle" id="callsSubtitle">知声在线守护中</div>
+        </div>
+        <div class="view-body" id="callsBody"></div>
+      </div>
+
+      <!-- View: Live (Caller Simulator / Active Call) -->
+      <div class="view" id="view-live">
+        <div class="view-header">
+          <h1>实时</h1>
+        </div>
+        <div class="view-body">
+          <div class="call-active-header" id="liveHeader">
+            <div class="cah-dot off" id="liveDot"></div>
+            <div class="cah-info">
+              <div class="cah-title" id="liveTitle">未连接</div>
+              <div class="cah-sub" id="liveSub">点击下方开始</div>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:8px;margin-bottom:12px;">
+            <input class="auth-input" id="liveRoomId" placeholder="房间号" style="text-align:center;font-size:15px;">
+          </div>
+
+          <div class="chat-area" id="chatArea"></div>
+
+          <div class="caller-controls">
+            <button class="btn-full btn-green" id="btnCall" onclick="doCall()">拨打电话</button>
+            <button class="btn-full btn-blue" id="btnAI" onclick="doAI()" disabled>启动知声 AI</button>
+            <div class="btn-row">
+              <button class="btn-full btn-ghost" id="btnTransfer" onclick="doTransfer()" disabled style="font-size:14px;">转接</button>
+              <button class="btn-full btn-red" id="btnHangup" onclick="doHangup()" disabled style="font-size:14px;">挂断</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- View: Knowledge -->
+      <div class="view" id="view-knowledge">
+        <div class="view-header">
+          <h1>知识库</h1>
+          <div class="header-subtitle">知声用这些信息回答来电</div>
+        </div>
+        <div class="view-body">
+          <div class="knowledge-input-bar">
+            <input id="kInput" placeholder="添加知识..." onkeydown="if(event.key==='Enter')addK()">
+            <button onclick="addK()">添加</button>
+          </div>
+          <div class="cell-group" id="knowledgeList"></div>
+        </div>
+      </div>
+
+      <!-- View: Settings -->
+      <div class="view" id="view-settings">
+        <div class="view-header">
+          <h1>设置</h1>
+        </div>
+        <div class="view-body">
+          <div class="form-section">
+            <div class="form-section-title">个人信息</div>
+            <div class="cell-group">
+              <div class="form-cell"><label>姓名</label><input id="sName" placeholder="未设置"></div>
+              <div class="form-cell"><label>称呼</label><input id="sNickname" placeholder="未设置"></div>
+              <div class="form-cell"><label>职位</label><input id="sRole" placeholder="未设置"></div>
+              <div class="form-cell"><label>公司</label><input id="sCompany" placeholder="未设置"></div>
+            </div>
+          </div>
+          <div class="form-section">
+            <div class="form-section-title">接听规则</div>
+            <div class="cell-group">
+              <div class="form-cell"><label>开场白</label><textarea id="sGreeting" rows="2" placeholder="知声接电话的第一句话"></textarea></div>
+              <div class="form-cell"><label>自动处理</label><input id="sAuto" placeholder="快递、外卖、推销..."></div>
+              <div class="form-cell"><label>必须转接</label><input id="sTransfer" placeholder="老板、家人..."></div>
+              <div class="form-cell"><label>禁止做的</label><input id="sForbid" placeholder="转账、泄露隐私..."></div>
+            </div>
+          </div>
+          <button class="btn-full btn-blue" id="btnSave" onclick="saveProfile()">保存设置</button>
+          <div style="height:16px;"></div>
+          <button class="btn-full btn-ghost" onclick="logout()" style="color:var(--red);">退出登录</button>
+        </div>
+      </div>
+
+      <!-- View: Onboarding -->
+      <div class="view" id="view-onboarding" style="overflow-y:auto;">
+        <div class="ob-page">
+          <div class="ob-progress" id="obProgress">
+            <div class="bar active"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+          </div>
+
+          <div class="ob-step active" data-ob="0">
+            <h2>基本信息</h2>
+            <p class="ob-desc">告诉知声你是谁，它才能代表你接电话</p>
+            <div class="form-section">
+              <div class="cell-group">
+                <div class="form-cell"><label>姓名 *</label><input id="obName" placeholder="刘辰"></div>
+                <div class="form-cell"><label>称呼</label><input id="obNick" placeholder="小辰"></div>
+                <div class="form-cell"><label>职位</label><input id="obRole" placeholder="产品经理"></div>
+                <div class="form-cell"><label>公司</label><input id="obCompany" placeholder="腾讯"></div>
+              </div>
+            </div>
+            <div class="ob-actions"><button class="btn-full btn-blue" onclick="obNext()">继续</button></div>
+          </div>
+
+          <div class="ob-step" data-ob="1">
+            <h2>代接规则</h2>
+            <p class="ob-desc">哪些电话知声自己处理，哪些必须通知你</p>
+            <div class="form-section">
+              <div class="cell-group">
+                <div class="form-cell"><label>自动处理</label><textarea id="obAuto" placeholder="快递确认、外卖、推销拒绝"></textarea></div>
+                <div class="form-cell"><label>必须转接</label><textarea id="obTransfer" placeholder="老板、家人、重要客户"></textarea></div>
+              </div>
+            </div>
+            <div class="ob-actions">
+              <div class="btn-row">
+                <button class="btn-full btn-ghost" onclick="obPrev()">上一步</button>
+                <button class="btn-full btn-blue" onclick="obNext()">继续</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="ob-step" data-ob="2">
+            <h2>常见问题</h2>
+            <p class="ob-desc">预设好答案，知声不用每次再问你</p>
+            <div class="form-section">
+              <div class="cell-group">
+                <div class="form-cell"><label>问题1</label><input id="obQ1" placeholder="快递放哪？"></div>
+                <div class="form-cell"><label>答案1</label><input id="obA1" placeholder="放门口架子上"></div>
+                <div class="form-cell"><label>问题2</label><input id="obQ2" placeholder="你的地址？"></div>
+                <div class="form-cell"><label>答案2</label><input id="obA2" placeholder="深圳南山"></div>
+              </div>
+            </div>
+            <div class="ob-actions">
+              <div class="btn-row">
+                <button class="btn-full btn-ghost" onclick="obPrev()">上一步</button>
+                <button class="btn-full btn-blue" onclick="obNext()">继续</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="ob-step" data-ob="3">
+            <h2>开场白</h2>
+            <p class="ob-desc">知声接起电话的第一句话</p>
+            <div class="form-section">
+              <div class="cell-group">
+                <div class="form-cell"><label>开场白</label><textarea id="obGreeting" rows="3" placeholder="你好，我是小辰的语音助手知声..."></textarea></div>
+              </div>
+            </div>
+            <div class="ob-actions">
+              <div class="btn-row">
+                <button class="btn-full btn-ghost" onclick="obPrev()">上一步</button>
+                <button class="btn-full btn-green" id="obDoneBtn" onclick="obDone()">完成</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab Bar -->
+    <div class="tab-bar" id="tabBar">
+      <button class="tab-btn active" data-tab="calls" onclick="switchTab('calls')">
+        <span class="tab-icon">📋</span>
+        <span class="tab-label">通话</span>
+      </button>
+      <button class="tab-btn" data-tab="live" onclick="switchTab('live')">
+        <span class="tab-icon">📞</span>
+        <span class="tab-label">实时</span>
+      </button>
+      <button class="tab-btn" data-tab="knowledge" onclick="switchTab('knowledge')">
+        <span class="tab-icon">📚</span>
+        <span class="tab-label">知识库</span>
+      </button>
+      <button class="tab-btn" data-tab="settings" onclick="switchTab('settings')">
+        <span class="tab-icon">⚙️</span>
+        <span class="tab-label">设置</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="/TRTC.js"></script>
+  <script>
+  // ==================== State ====================
+  const S = { profile: null, token: null, trtc: null, taskId: null, uid: 'caller_' + rnd(), joinTrtc: null };
+  function rnd() { return Math.random().toString(36).slice(2, 8); }
+
+  // ==================== Boot ====================
+  async function boot() {
+    // Check stored token
+    S.token = localStorage.getItem('nous_token');
+    if (!S.token) { showAuth(); return; }
+    try {
+      S.profile = await api('/api/profile');
+      if (!S.profile.onboarding_completed) { showApp(); showOnboarding(); }
+      else { showApp(); switchTab('calls'); }
+    } catch (e) {
+      // Token invalid
+      localStorage.removeItem('nous_token');
+      showAuth();
+    }
+  }
+
+  function showAuth() {
+    document.getElementById('splash').classList.add('hide');
+    document.getElementById('authPage').classList.remove('hidden');
+  }
+
+  function showApp() {
+    document.getElementById('splash').classList.add('hide');
+    document.getElementById('authPage').classList.add('hidden');
+    document.getElementById('app').style.display = 'flex';
+  }
+
+  function showOnboarding() {
+    document.getElementById('tabBar').classList.add('hidden');
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.getElementById('view-onboarding').classList.add('active');
+    // Pre-fill greeting
+    const nick = document.getElementById('obNick').value || document.getElementById('obName').value || '';
+    if (nick && !document.getElementById('obGreeting').value) {
+      document.getElementById('obGreeting').value = `你好，我是${nick}的语音助手知声，他现在不方便接听。请问有什么事我可以帮你转达或处理？`;
+    }
+  }
+
+  // ==================== Auth ====================
+  let authStep = 0;
+  function handleAuth() {
+    const phone = document.getElementById('authPhone').value.trim();
+    if (authStep === 0) {
+      if (!/^1\d{10}$/.test(phone)) { document.getElementById('authError').textContent = '请输入正确的手机号'; return; }
+      document.getElementById('authError').textContent = '';
+      document.getElementById('authCode').classList.remove('hidden');
+      document.getElementById('authBtn').textContent = '登录';
+      authStep = 1;
+      // In real app: send SMS code
+      toast('验证码已发送（演示模式任意6位）');
+    } else {
+      const code = document.getElementById('authCode').value.trim();
+      if (code.length < 4) { document.getElementById('authError').textContent = '请输入验证码'; return; }
+      // Simulate login
+      S.token = 'nous_' + rnd();
+      localStorage.setItem('nous_token', S.token);
+      localStorage.setItem('nous_phone', phone);
+      boot();
+    }
+  }
+
+  function quickLogin() {
+    S.token = 'nous_demo_' + rnd();
+    localStorage.setItem('nous_token', S.token);
+    boot();
+  }
+
+  function logout() {
+    localStorage.removeItem('nous_token');
+    localStorage.removeItem('nous_phone');
+    S.token = null; S.profile = null;
+    document.getElementById('app').style.display = 'none';
+    showAuth();
+  }
+
+  // ==================== Tabs ====================
+  function switchTab(name) {
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.getElementById('view-' + name).classList.add('active');
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+
+    if (name === 'calls') loadCalls();
+    if (name === 'knowledge') loadKnowledge();
+    if (name === 'settings') loadSettings();
+    if (name === 'live') initLive();
+  }
+
+  // ==================== API ====================
+  async function api(url, opts) { const r = await fetch(url, opts); if (!r.ok) throw new Error(r.statusText); return r.json(); }
+  async function post(url, body) { return api(url, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) }); }
+  async function put(url, body) { return api(url, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) }); }
+
+  // ==================== Calls ====================
+  async function loadCalls() {
+    try {
+      const calls = await api('/api/calls');
+      const body = document.getElementById('callsBody');
+      if (!calls.length) {
+        body.innerHTML = `<div class="empty"><div class="empty-icon">📞</div><div class="empty-text">暂无通话记录</div><div class="empty-action"><button onclick="switchTab('live')">模拟一次来电</button></div></div>`;
+        return;
+      }
+      body.innerHTML = '<div class="cell-group">' + calls.map(c => {
+        const pills = { transferred: 'pill-orange">转接', ended: 'pill-gray">结束', in_progress: 'pill-blue">进行中' };
+        const p = pills[c.action_taken] || 'pill-green">已处理';
+        const t = new Date(c.start_time).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+        return `<div class="cell call-cell"><div class="cell-body"><div class="call-top"><span class="call-name">${c.caller_id||'未知来电'}</span><span class="call-time">${t}</span></div><div class="call-bottom"><span class="pill ${p}</span><span class="call-summary">${c.summary||'通话中...'}</span></div></div></div>`;
+      }).join('') + '</div>';
+      document.getElementById('callsSubtitle').textContent = `共 ${calls.length} 通电话`;
+    } catch {}
+  }
+
+  // ==================== Knowledge ====================
+  async function loadKnowledge() {
+    try {
+      const items = await api('/api/knowledge');
+      const el = document.getElementById('knowledgeList');
+      if (!items.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">📚</div><div class="empty-text">暂无知识条目</div></div>'; return; }
+      el.innerHTML = items.map((k,i) => `<div class="cell"><div class="cell-body"><div class="cell-title">${k.text}</div><div class="cell-subtitle">${k.source||'手动添加'}</div></div><div class="cell-accessory" onclick="delK(${k.id||i})" style="cursor:pointer;color:var(--red);font-size:16px;">×</div></div>`).join('');
+    } catch {}
+  }
+  async function addK() {
+    const input = document.getElementById('kInput');
+    const text = input.value.trim();
+    if (!text) return;
+    await post('/api/knowledge', { text, source: 'dashboard' });
+    input.value = ''; toast('已添加'); loadKnowledge();
+  }
+  async function delK(id) { try { await fetch('/api/knowledge/'+id, {method:'DELETE'}); } catch {} toast('已删除'); loadKnowledge(); }
+
+  // ==================== Settings ====================
+  async function loadSettings() {
+    if (!S.profile) return;
+    const p = S.profile;
+    document.getElementById('sName').value = p.identity?.name || '';
+    document.getElementById('sNickname').value = p.identity?.nickname || '';
+    document.getElementById('sRole').value = p.identity?.role || '';
+    document.getElementById('sCompany').value = p.identity?.company || '';
+    document.getElementById('sGreeting').value = p.greeting || '';
+    document.getElementById('sAuto').value = (p.rules?.auto_handle||[]).join('、');
+    document.getElementById('sTransfer').value = (p.rules?.always_transfer||[]).join('、');
+    document.getElementById('sForbid').value = (p.rules?.forbidden_actions||[]).join('、');
+  }
+  async function saveProfile() {
+    btnLoad('btnSave', true);
+    const data = {
+      identity: { name: v('sName'), nickname: v('sNickname'), role: v('sRole'), company: v('sCompany') },
+      greeting: v('sGreeting'),
+      rules: { auto_handle: split(v('sAuto')), always_transfer: split(v('sTransfer')), forbidden_actions: split(v('sForbid')), spam_policy: 'polite_reject' },
+    };
+    await put('/api/profile', data);
+    S.profile = { ...S.profile, ...data };
+    btnLoad('btnSave', false); toast('已保存');
+  }
+
+  // ==================== Onboarding ====================
+  let obStep = 0;
+  function obNext() {
+    if (obStep === 0 && !v('obName')) { toast('请输入姓名'); return; }
+    obStep++;
+    document.querySelectorAll('.ob-step').forEach(s => s.classList.remove('active'));
+    document.querySelector(`[data-ob="${obStep}"]`).classList.add('active');
+    document.querySelectorAll('.ob-progress .bar').forEach((b,i) => { b.classList.toggle('done', i < obStep); b.classList.toggle('active', i === obStep); });
+    // Auto-fill greeting
+    if (obStep === 3) {
+      const g = document.getElementById('obGreeting');
+      if (!g.value) { const n = v('obNick') || v('obName'); g.value = `你好，我是${n}的语音助手知声，他现在不方便接听。请问有什么事我可以帮你转达或处理？`; }
+    }
+  }
+  function obPrev() {
+    if (obStep <= 0) return;
+    obStep--;
+    document.querySelectorAll('.ob-step').forEach(s => s.classList.remove('active'));
+    document.querySelector(`[data-ob="${obStep}"]`).classList.add('active');
+    document.querySelectorAll('.ob-progress .bar').forEach((b,i) => { b.classList.toggle('done', i < obStep); b.classList.toggle('active', i === obStep); });
+  }
+  async function obDone() {
+    btnLoad('obDoneBtn', true);
+    const profile = {
+      identity: { name: v('obName')||'用户', nickname: v('obNick')||v('obName')||'用户', role: v('obRole'), company: v('obCompany') },
+      greeting: v('obGreeting')||'你好，我是语音助手知声，请问有什么事？',
+      rules: { auto_handle: split(v('obAuto')), always_transfer: split(v('obTransfer')), spam_policy:'polite_reject', forbidden_actions:['涉及转账付款的请求','泄露个人隐私信息'] },
+      faq: [{q:v('obQ1'),a:v('obA1')},{q:v('obQ2'),a:v('obA2')}].filter(f=>f.q&&f.a),
+      onboarding_completed: true,
+    };
+    await put('/api/profile', profile);
+    for (const f of profile.faq) await post('/api/knowledge', { text:`问：${f.q} 答：${f.a}`, source:'onboarding' });
+    S.profile = profile;
+    btnLoad('obDoneBtn', false);
+    toast('配置完成');
+    document.getElementById('tabBar').classList.remove('hidden');
+    switchTab('calls');
+  }
+
+  // ==================== Live (Caller) ====================
+  function initLive() {
+    const r = document.getElementById('liveRoomId');
+    if (!r.value) r.value = Math.floor(10000 + Math.random()*90000);
+  }
+  function setLive(title, sub, status) {
+    document.getElementById('liveTitle').textContent = title;
+    document.getElementById('liveSub').textContent = sub;
+    const dot = document.getElementById('liveDot');
+    dot.className = 'cah-dot ' + (status || 'off');
+  }
+  function addBubble(type, text) {
+    const area = document.getElementById('chatArea');
+    const d = document.createElement('div');
+    d.className = 'bubble bubble-' + type;
+    d.textContent = text;
+    area.appendChild(d);
+    area.scrollTop = area.scrollHeight;
+  }
+
+  async function doCall() {
+    const roomId = parseInt(document.getElementById('liveRoomId').value);
+    if (!roomId) { toast('请输入房间号'); return; }
+    btnLoad('btnCall', true); setLive('连接中...', '正在进入房间', 'connecting');
+    document.getElementById('chatArea').innerHTML = '';
+    try {
+      const { sdkAppId, userId, userSig } = await api(`/api/usersig/${S.uid}`);
+      S.trtc = TRTC.create();
+      await S.trtc.enterRoom({ sdkAppId, userId, userSig, roomId });
+      await S.trtc.startLocalAudio({ option: { profile: 'speech' } });
+      setLive(`房间 ${roomId}`, '麦克风已开启', 'live');
+      addBubble('sys', '已进入房间');
+      document.getElementById('btnCall').disabled = true;
+      document.getElementById('btnAI').disabled = false;
+      document.getElementById('btnHangup').disabled = false;
+
+      S.trtc.on(TRTC.EVENT.CUSTOM_MESSAGE, (e) => {
+        try {
+          const msg = JSON.parse(new TextDecoder().decode(e.data));
+          if (msg.type === 10000 && msg.payload.end) {
+            addBubble(msg.sender === S.uid ? 'user' : 'ai', msg.payload.text);
+            if (msg.sender !== S.uid && msg.payload.text.includes('转接')) doAutoTransfer();
+          }
+        } catch {}
+      });
+    } catch (err) { setLive('连接失败', err.message, 'off'); }
+    btnLoad('btnCall', false);
+  }
+
+  async function doAI() {
+    btnLoad('btnAI', true); setLive('启动知声...', '请稍候', 'connecting');
+    try {
+      const data = await post('/api/ai/start', { roomId: v('liveRoomId'), targetUserId: S.uid });
+      if (data.success) { S.taskId = data.taskId; setLive('知声在线', '正在监听', 'live'); addBubble('sys','知声已上线'); document.getElementById('btnAI').disabled = true; document.getElementById('btnTransfer').disabled = false; }
+      else setLive('启动失败', data.error, 'off');
+    } catch (err) { setLive('启动失败', err.message, 'off'); }
+    btnLoad('btnAI', false);
+  }
+
+  async function doHangup() {
+    if (S.taskId) { post('/api/ai/stop', {taskId:S.taskId}).catch(()=>{}); S.taskId=null; }
+    if (S.trtc) { await S.trtc.exitRoom(); S.trtc.destroy(); S.trtc=null; }
+    setLive('未连接', '通话已结束', 'off'); addBubble('sys','通话结束');
+    document.getElementById('btnCall').disabled = false;
+    document.getElementById('btnAI').disabled = true;
+    document.getElementById('btnHangup').disabled = true;
+    document.getElementById('btnTransfer').disabled = true;
+  }
+
+  async function doTransfer() {
+    btnLoad('btnTransfer', true); setLive('转接中...', '正在通知', 'connecting');
+    try {
+      const data = await post('/api/transfer', { taskId:S.taskId, roomId:v('liveRoomId'), summary:'来电方请求转接', urgency:8, callerInfo:S.uid });
+      if (data.success) { setLive('等待接入', '通知已发送', 'connecting'); addBubble('sys','转接通知已发送'); }
+      else setLive('转接失败', data.error, 'off');
+    } catch (err) { setLive('转接失败', err.message, 'off'); }
+    btnLoad('btnTransfer', false);
+  }
+
+  async function doAutoTransfer() {
+    addBubble('sys', '知声触发自动转接');
+    setLive('自动转接', '正在通知', 'connecting');
+    try { await post('/api/transfer', { taskId:S.taskId, roomId:v('liveRoomId'), summary:'知声自动转接', urgency:8, callerInfo:S.uid }); setLive('等待接入', '已通知', 'connecting'); } catch {}
+  }
+
+  // ==================== Helpers ====================
+  function v(id) { return document.getElementById(id)?.value?.trim() || ''; }
+  function split(s) { return (s||'').split(/[,，、]/).map(x=>x.trim()).filter(Boolean); }
+  function toast(msg) { const el=document.getElementById('toast'); el.textContent=msg; el.classList.add('show'); setTimeout(()=>el.classList.remove('show'),2500); }
+  function btnLoad(id, on) { const b=document.getElementById(id); if(b){b.classList.toggle('loading',on);b.disabled=on;} }
+
+  // ==================== PWA ====================
+  if ('serviceWorker' in navigator) { navigator.serviceWorker.register('/sw.js').catch(()=>{}); }
+
+  // ==================== Start ====================
+  setTimeout(boot, 600);
+  </script>
+</body>
+</html>

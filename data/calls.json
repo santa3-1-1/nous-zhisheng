@@ -1,0 +1,72 @@
+[
+  {
+    "id": 1,
+    "session_id": "session_27645_1780377208803",
+    "task_id": "v2_20260602_h1QJP5fr5vP9UV7VnaMv-65b0S7p-NYn0xVlrWV69_W6gNFfylMIQSmOP8KGPcfRJOrEWYiuFMbDc4T1BkulxjWd2koyjsTel9-9",
+    "room_id": 27645,
+    "caller_id": "caller_h7ehgj",
+    "start_time": "2026-06-02T05:13:28.803Z",
+    "end_time": "2026-06-02T05:13:56.091Z",
+    "duration_seconds": 27,
+    "action_taken": "ended",
+    "summary": "无对话记录",
+    "transcript": [],
+    "urgency": 0
+  },
+  {
+    "id": 2,
+    "session_id": "session_42252_1780377324345",
+    "task_id": "v2_20260602_nihVBHLUQn8EeQu5kgKZxeG3Gs8oAsOWGz0umy4kiq9MHEF-PtdzQGsau0I53bb10BY6i0T05xbMi0_ZOqawh9veONLxCgDHF7iQ",
+    "room_id": 42252,
+    "caller_id": "caller_6mc4a2",
+    "start_time": "2026-06-02T05:15:24.345Z",
+    "end_time": "2026-06-02T05:15:53.882Z",
+    "duration_seconds": 29,
+    "action_taken": "ended",
+    "summary": "无对话记录",
+    "transcript": [],
+    "urgency": 0
+  },
+  {
+    "id": 3,
+    "session_id": "session_98740_1780377472058",
+    "task_id": "v2_20260602_rbO4FmJW898W129TR-42qA7L0pY45kAO3h_NQB5SDKSm7isBuhrVOI4dlRFUVyMi07aRHJen5WXGcNtegok8bw7mAQ9qtZn4GODj",
+    "room_id": 98740,
+    "caller_id": "caller_pu127e",
+    "start_time": "2026-06-02T05:17:52.058Z",
+    "end_time": null,
+    "duration_seconds": null,
+    "action_taken": "in_progress",
+    "summary": null,
+    "transcript": [],
+    "urgency": 0
+  },
+  {
+    "id": 4,
+    "session_id": "session_56660_1780377623229",
+    "task_id": "v2_20260602_muIMeipHmOmZUbMu3USbKfe45kwkQbAbq1CEq9qDgo5VsLcxxaFLaPzl1puHC5MHl4xM3tXUA4PqjDOzOldLywjoHdRMaxp35fc",
+    "room_id": 56660,
+    "caller_id": "caller_804za5",
+    "start_time": "2026-06-02T05:20:23.229Z",
+    "end_time": "2026-06-02T05:20:57.367Z",
+    "duration_seconds": 34,
+    "action_taken": "transferred",
+    "summary": "来电方请求与本人通话",
+    "transcript": [],
+    "urgency": 0
+  },
+  {
+    "id": 5,
+    "session_id": "session_43857_1780383978832",
+    "task_id": "v2_20260602_hP8ZHMZZVYQaSsD0oh3l4Zrq5_JD5nuy7l9-gqVaQlMHiSJz6NyRZVZ0wkEVDnJh2c8IuCRMHlV0cjm8vt23eNd_MR50JC7jhw_d",
+    "room_id": 43857,
+    "caller_id": "caller_wvck77",
+    "start_time": "2026-06-02T07:06:18.832Z",
+    "end_time": "2026-06-02T07:06:39.586Z",
+    "duration_seconds": 20,
+    "action_taken": "transferred",
+    "summary": "知声自动判断需要转接（来电方要求或超出处理范围）",
+    "transcript": [],
+    "urgency": 0
+  }
+]
