@@ -14,6 +14,7 @@ import config from './config.js';
 import { generateUserSig } from './trtc/usersig.js';
 import { startAIConversation, stopAIConversation, controlAIConversation } from './trtc/ai-conversation.js';
 import { buildSystemPrompt } from './engine/prompt.js';
+import { buildOutboundPrompt } from './engine/outbound-prompt.js';
 import { generateSummary } from './engine/summary.js';
 import { sendTransferNotify } from './transfer/notify.js';
 import { initKnowledge, addKnowledge, searchKnowledge, getAllKnowledge, loadProfileKnowledge } from './rag/knowledge.js';
@@ -235,6 +236,85 @@ app.get('/api/notifications', (req, res) => {
   // 机主App轮询：有新通知就返回，没有就返回空
   const pending = pendingNotifications.splice(0);
   res.json(pending);
+});
+
+// --- 代打（机主主动外呼） ---
+const outboundTasks = new Map(); // taskId → {instruction, targetName, status, roomId, ...}
+
+app.post('/api/outbound/create', async (req, res) => {
+  const { instruction, targetName } = req.body;
+  if (!instruction) return res.status(400).json({ error: 'instruction required' });
+
+  const roomId = Math.floor(10000 + Math.random() * 90000);
+  const outboundId = 'ob_' + Date.now();
+  const SERVER_BASE = process.env.SERVER_BASE_URL || `http://localhost:${config.server.port}`;
+  const callLink = `${SERVER_BASE}/outbound.html?id=${outboundId}`;
+
+  outboundTasks.set(outboundId, {
+    id: outboundId,
+    instruction,
+    targetName: targetName || '对方',
+    roomId,
+    status: 'pending', // pending → active → completed / needs_attention
+    callLink,
+    taskId: null,
+    summary: null,
+    createdAt: Date.now(),
+  });
+
+  res.json({ success: true, outboundId, callLink, roomId });
+});
+
+app.get('/api/outbound/:id', (req, res) => {
+  const task = outboundTasks.get(req.params.id);
+  if (!task) return res.status(404).json({ error: 'Task not found' });
+  res.json(task);
+});
+
+app.get('/api/outbound', (req, res) => {
+  const tasks = [...outboundTasks.values()].sort((a, b) => b.createdAt - a.createdAt);
+  res.json(tasks);
+});
+
+// 对方接听后启动AI（代打模式）
+app.post('/api/outbound/start', async (req, res) => {
+  const { outboundId, callerId } = req.body;
+  const task = outboundTasks.get(outboundId);
+  if (!task) return res.status(404).json({ error: 'Task not found' });
+
+  try {
+    const systemPrompt = buildOutboundPrompt(profile, task);
+    
+    const result = await startAIConversation({
+      roomId: task.roomId,
+      targetUserId: callerId,
+      systemPrompt,
+      profile,
+    });
+
+    task.status = 'active';
+    task.taskId = result.TaskId;
+
+    // 记录通话
+    const sessionId = `outbound_${task.roomId}_${Date.now()}`;
+    const callId = createCall({
+      sessionId,
+      taskId: result.TaskId,
+      roomId: task.roomId,
+      callerId: `outbound→${task.targetName}`,
+    });
+
+    activeSessions.set(result.TaskId, {
+      sessionId, callId, roomId: task.roomId,
+      targetUserId: callerId, startTime: Date.now(),
+      outboundId,
+    });
+
+    res.json({ success: true, taskId: result.TaskId, roomId: task.roomId });
+  } catch (err) {
+    console.error('[Outbound Start Error]', err.message);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // --- 来电方入口：直接启动AI对话 ---
