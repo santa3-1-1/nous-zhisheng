@@ -1,4 +1,4 @@
-const CACHE_NAME = 'nous-v1';
+const CACHE_NAME = 'nous-v2';
 const ASSETS = ['/', '/index.html', '/TRTC.js', '/manifest.json'];
 
 self.addEventListener('install', (e) => {
