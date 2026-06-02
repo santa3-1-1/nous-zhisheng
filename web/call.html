@@ -136,6 +136,11 @@
             if (msg.type === 10000 && msg.payload.end) {
               const isMe = msg.sender === callerId;
               addBubble(isMe ? 'user' : 'ai', msg.payload.text);
+              
+              // 检测AI说了转接相关的话 → 自动触发转接通知
+              if (!isMe && (msg.payload.text.includes('转接') || msg.payload.text.includes('转给') || msg.payload.text.includes('本人'))) {
+                triggerTransfer();
+              }
             }
           } catch {}
         });
@@ -167,6 +172,21 @@
       addBubble('sys', '通话结束');
       document.getElementById('btnStart').disabled = false;
       document.getElementById('btnEnd').disabled = true;
+    }
+
+    let transferTriggered = false;
+    async function triggerTransfer() {
+      if (transferTriggered) return; // 只触发一次
+      transferTriggered = true;
+      addBubble('sys', '正在转接给本人，请稍候...');
+      setStatus('转接中...', 'connecting');
+      try {
+        await fetch('/api/transfer', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ taskId, roomId, urgency: 8, callerInfo: callerId }),
+        });
+      } catch {}
     }
   </script>
 </body>
