@@ -20,7 +20,10 @@ import { buildRubricPrompt, calculateTransferScore, shouldTransfer, DEFAULT_WEIG
 import { sendTransferNotify } from './transfer/notify.js';
 import { initKnowledge, addKnowledge, searchKnowledge, getAllKnowledge, loadProfileKnowledge } from './rag/knowledge.js';
 import { createCall, endCall, addTranscript, getCalls, getCall } from './db/store.js';
-import profile from '../profiles/default.json' with { type: 'json' };
+import { readFileSync } from 'fs';
+import OpenAI from 'openai';
+
+const profile = JSON.parse(readFileSync(new URL('../profiles/default.json', import.meta.url), 'utf-8'));
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -230,7 +233,6 @@ app.put('/api/profile', (req, res) => {
 });
 
 // --- Rubric 评分 API ---
-import OpenAI from 'openai';
 const deepseekClient = new OpenAI({ baseURL: config.deepseek.baseUrl, apiKey: config.deepseek.apiKey });
 
 app.post('/api/rubric/evaluate', async (req, res) => {
