@@ -1000,18 +1000,26 @@ function selectVoice(card) {
 }
 
 function triggerPWAInstall() {
-  // 检测是否在微信/企微内置浏览器中
   const ua = navigator.userAgent;
+  const isAndroid = /Android/i.test(ua);
+  const isIOS = /iPad|iPhone|iPod/.test(ua);
   const isWeChat = /MicroMessenger|wxwork/i.test(ua);
-  
+
+  if (isAndroid) {
+    // Android — 直接下载 APK（最流畅的体验）
+    window.location.href = '/download/Nous.apk';
+    showToast('正在下载，安装时请允许"未知来源"');
+    return;
+  }
+
   if (isWeChat) {
-    // 微信/企微内置浏览器不支持 PWA — 引导用户在系统浏览器打开
+    // 微信/企微内置浏览器 — 引导在浏览器打开
     showOpenInBrowserGuide();
     return;
   }
 
   if (deferredInstallPrompt) {
-    // Android Chrome / 桌面 Chrome — 直接弹系统安装框
+    // 桌面 Chrome — 直接弹系统安装框
     deferredInstallPrompt.prompt();
     deferredInstallPrompt.userChoice.then(result => {
       if (result.outcome === 'accepted') { showToast('安装成功！'); }
