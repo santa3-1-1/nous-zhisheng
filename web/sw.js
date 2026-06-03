@@ -27,7 +27,7 @@ self.addEventListener('fetch', (e) => {
 self.addEventListener('push', (e) => {
   const data = e.data?.json() || {};
   e.waitUntil(
-    self.registration.showNotification(data.title || '知声来电', {
+    self.registration.showNotification(data.title || '知音来电', {
       body: data.body || '有人给你打电话',
       icon: '/icons/icon-192.png',
       badge: '/icons/icon-192.png',

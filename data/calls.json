@@ -65,7 +65,7 @@
     "end_time": "2026-06-02T07:06:39.586Z",
     "duration_seconds": 20,
     "action_taken": "transferred",
-    "summary": "知声自动判断需要转接（来电方要求或超出处理范围）",
+    "summary": "知音自动判断需要转接（来电方要求或超出处理范围）",
     "transcript": [],
     "urgency": 0
   }

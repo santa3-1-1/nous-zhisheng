@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="theme-color" content="#0a0a0a">
-  <title>知声 — 通话</title>
+  <title>知音 — 通话</title>
   <style>
     :root { --bg:#0a0a0a; --card:#1c1c1e; --border:#2c2c2e; --blue:#0a84ff; --green:#30d158; --orange:#ff9f0a; --red:#ff453a; --text:#fff; --text2:#ebebf5cc; --text3:#ebebf54d; }
     * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
@@ -48,8 +48,8 @@
 <body>
   <div class="container">
     <div class="avatar">📞</div>
-    <h1 id="ownerName">知声</h1>
-    <p class="subtitle" id="ownerDesc">AI 语音助手正在为主人代接</p>
+    <h1 id="ownerName">知音</h1>
+    <p class="subtitle" id="ownerDesc">本人暂时不方便，知音替 TA 接听</p>
 
     <div class="status-card">
       <span class="status-dot off" id="dot"></span>
@@ -61,22 +61,26 @@
     <button class="btn btn-green" id="btnStart" onclick="startCall()">开始通话</button>
     <button class="btn btn-red" id="btnEnd" onclick="endCall()" disabled>结束通话</button>
 
-    <p class="info">对麦克风说话，知声会代为回应。<br>如果需要，知声会转接给本人。</p>
-    <p class="powered">Powered by 知声 Nous</p>
+    <p class="info">对麦克风说话，对方的知音会替 TA 与你沟通。<br>如有需要，会转接给本人。</p>
+    <p class="powered">Powered by 知音 Nous</p>
   </div>
 
   <script src="/TRTC.js"></script>
   <script>
     const callerId = 'visitor_' + Math.random().toString(36).slice(2, 8);
+    const params = new URLSearchParams(location.search);
+    const ownerUserId = params.get('owner');
     let trtc = null, taskId = null, roomId = null;
 
     // Load owner info
-    fetch('/api/profile').then(r=>r.json()).then(p => {
-      if (p.identity?.nickname) {
-        document.getElementById('ownerName').textContent = p.identity.nickname + ' 的知声';
-        document.getElementById('ownerDesc').textContent = `${p.identity.nickname}现在不方便，知声正在代接`;
-      }
-    }).catch(()=>{});
+    if (ownerUserId) {
+      fetch(`/api/public/profile/${ownerUserId}`).then(r=>r.json()).then(p => {
+        if (p.nickname) {
+          document.getElementById('ownerName').textContent = p.nickname;
+          document.getElementById('ownerDesc').textContent = `${p.nickname}现在不方便，知音替 TA 接听`;
+        }
+      }).catch(()=>{});
+    }
 
     function setStatus(text, type) {
       document.getElementById('statusText').textContent = text;
@@ -100,6 +104,7 @@
     }
 
     async function startCall() {
+      if (!ownerUserId) { setStatus('链接无效——缺少用户标识', 'off'); return; }
       btnLoad('btnStart', true);
       setStatus('正在连接...', 'connecting');
 
@@ -108,7 +113,7 @@
         const res = await fetch('/api/call/start', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ callerId }),
+          body: JSON.stringify({ callerId, ownerUserId }),
         });
         const data = await res.json();
         if (!data.success) throw new Error(data.error);
@@ -199,7 +204,7 @@
         const res = await fetch('/api/rubric/evaluate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ transcript: log, mode: 'inbound' }),
+          body: JSON.stringify({ transcript: log, mode: 'inbound', ownerUserId }),
         });
         const result = await res.json();
         console.log('[Rubric]', result);

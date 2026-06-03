@@ -23,7 +23,7 @@ export async function sendTransferNotify({ summary, urgency, callerInfo, roomId,
   const joinUrl = `${SERVER_BASE_URL}/join.html?room=${roomId}&taskId=${taskId}`;
   
   const content = [
-    `## ⚠️ 知声转接提醒`,
+    `## ⚠️ 知音转接提醒`,
     `> **来电方**: ${callerInfo || '未知号码'}`,
     `> **摘要**: ${summary}`,
     `> **紧急度**: ${urgency}/10`,

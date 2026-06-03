@@ -21,6 +21,13 @@ const client = new TrtcClient({
  * - 自动完成 ASR → LLM(DeepSeek) → TTS → 推流
  */
 export async function startAIConversation({ roomId, targetUserId, systemPrompt, profile }) {
+  // 根据音色模式选择 voice_id
+  const voice = profile.voice || {};
+  let voiceId = voice.voice_id || 'v-male-W1tH9jVc';
+  if (voice.mode === 'clone' && voice.clone_voice_id) {
+    voiceId = voice.clone_voice_id;
+  }
+
   const params = {
     SdkAppId: config.trtc.sdkAppId,
     RoomId: String(roomId),
@@ -43,13 +50,13 @@ export async function startAIConversation({ roomId, targetUserId, systemPrompt, 
       MaxTokens: 300,
       Temperature: 0.7,
     }),
-    // TTS 配置 — TRTC 内置音色
+    // TTS 配置 — 根据用户选择的音色
     TTSConfig: JSON.stringify({
-      TTSType: profile.voice.tts_type,
-      VoiceId: profile.voice.voice_id,
-      Model: profile.voice.model,
-      Speed: profile.voice.speed,
-      Language: profile.voice.language,
+      TTSType: voice.tts_type || 'flow',
+      VoiceId: voiceId,
+      Model: voice.model || 'flow_01_turbo',
+      Speed: voice.speed || 1.0,
+      Language: voice.language || 'zh',
     }),
   };
 

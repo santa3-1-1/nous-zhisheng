@@ -20,7 +20,7 @@ export async function generateSummary(transcript) {
   }
 
   const conversationText = transcript
-    .map(t => `${t.role === 'caller' ? '来电方' : '知声'}: ${t.text}`)
+    .map(t => `${t.role === 'caller' ? '来电方' : '知音'}: ${t.text}`)
     .join('\n');
 
   try {

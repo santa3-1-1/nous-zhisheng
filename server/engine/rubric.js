@@ -1,5 +1,5 @@
 /**
- * 知声 Rubric 评分系统 — 通用底座
+ * 知音 Rubric 评分系统 — 通用底座
  * 
  * 每轮对话后，LLM 对当前状态进行多维度评分
  * 加权总分超过阈值 → 触发转接
@@ -10,7 +10,7 @@
 export const DEFAULT_WEIGHTS = {
   identity_match: 0.20,      // 对方身份 vs 机主关注名单
   topic_relevance: 0.25,     // 事情 vs 机主在意的领域
-  capability_fit: 0.20,      // 知声能不能代处理
+  capability_fit: 0.20,      // 知音能不能代处理
   boundary_violation: 0.15,  // 是否触碰机主底线
   explicit_signal: 0.10,     // 对方是否明确要求本人
   decay: 0.10,               // 多轮空转/无法推进
@@ -35,7 +35,7 @@ export function buildRubricPrompt(profile) {
   const shaping = profile.shaping || []; // 用户"塑造"过的规则
 
   const shapingContext = shaping.length > 0
-    ? `\n## 机主额外教过你的（"塑造"记录）\n${shaping.map(s => `- ${s}`).join('\n')}`
+    ? `\n## 用户的偏好和习惯（"塑造"记录）\n${shaping.map(s => `- ${s}`).join('\n')}`
     : '';
 
   return `
@@ -55,7 +55,7 @@ export function buildRubricPrompt(profile) {
    - 5分：有点关系但不紧急
    - 10分：直接关系到机主当前核心工作/生活重要事项
 
-3. **capability_fit** — 你（知声）能不能替机主处理好？
+3. **capability_fit** — 你（知音）能不能替机主处理好？
    - 1分：你完全能搞定（如确认快递、拒绝推销）
    - 5分：你勉强能应付但不完美
    - 10分：你完全没法处理（需要决策/承诺/敏感操作/你没有信息）

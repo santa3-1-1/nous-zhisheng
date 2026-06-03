@@ -1,6 +1,6 @@
 {
-  "name": "知声 Nous",
-  "short_name": "知声",
+  "name": "知音 Nous",
+  "short_name": "知音",
   "description": "你的 AI 来电代接助手",
   "start_url": "/index.html",
   "display": "standalone",

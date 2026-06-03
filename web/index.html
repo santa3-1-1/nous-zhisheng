@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#0a0a0a">
   <link rel="manifest" href="/manifest.json">
-  <title>知声</title>
+  <title>知音</title>
   <style>
     :root {
       --bg: #0a0a0a; --bg-card: #141414; --bg-elevated: #1c1c1e;
@@ -275,22 +275,19 @@
 <div id="app">
   <!-- Splash Screen -->
   <div class="splash" id="splash">
-    <div class="splash-logo">知声</div>
-    <div class="splash-sub">AI 语音助手</div>
+    <div class="splash-logo">知音</div>
+    <div class="splash-sub">另一个懂你的自己</div>
   </div>
 
   <!-- Login Page -->
   <div class="login-page" id="loginPage">
-    <div class="login-title">欢迎使用知声</div>
-    <div class="login-subtitle">用 AI 守护你的每一通来电</div>
+    <div class="login-title">欢迎使用知音</div>
+    <div class="login-subtitle">另一个懂你的自己</div>
     <div class="login-form">
-      <input class="login-input" id="loginPhone" type="tel" placeholder="手机号" maxlength="11">
-      <div class="login-row">
-        <input class="login-input" id="loginCode" type="text" placeholder="验证码" maxlength="6">
-        <button class="sms-btn" id="smsBtn" onclick="sendSms()">获取验证码</button>
-      </div>
+      <input class="login-input" id="loginUsername" type="text" placeholder="用户名" maxlength="20">
+      <input class="login-input" id="loginPassword" type="password" placeholder="密码">
       <button class="login-btn" id="loginBtn" onclick="doLogin()">登录</button>
-      <button class="demo-btn" onclick="demoLogin()">体验模式（免登录）</button>
+      <button class="login-btn" style="margin-top:10px;background:var(--green)" id="registerBtn" onclick="doRegister()">注册新账号</button>
     </div>
   </div>
 
@@ -305,23 +302,23 @@
     <div class="ob-content">
       <div class="ob-step active" data-step="0">
         <div class="ob-icon">📞</div>
-        <div class="ob-title">AI 来电守护</div>
-        <div class="ob-desc">知声会自动接听来电，理解对方意图，并按你的偏好应对</div>
+        <div class="ob-title">替你接打电话</div>
+        <div class="ob-desc">知音是另一个你——用你的方式接听来电、处理事务</div>
       </div>
       <div class="ob-step" data-step="1">
         <div class="ob-icon">🧠</div>
-        <div class="ob-title">塑造你的知声</div>
-        <div class="ob-desc">告诉知声你的习惯和偏好，它会越来越懂你</div>
+        <div class="ob-title">塑造你的知音</div>
+        <div class="ob-desc">告诉知音你的习惯和偏好，它会越来越像你</div>
       </div>
       <div class="ob-step" data-step="2">
         <div class="ob-icon">📋</div>
-        <div class="ob-title">代打电话</div>
-        <div class="ob-desc">给知声一个指令，让它帮你主动拨出电话完成任务</div>
+        <div class="ob-title">替你拨出电话</div>
+        <div class="ob-desc">给知音一个指令，让它以你的身份拨出电话完成任务</div>
       </div>
       <div class="ob-step" data-step="3">
         <div class="ob-icon">👋</div>
         <div class="ob-title">你怎么称呼？</div>
-        <div class="ob-desc">知声会用这个名字与来电方沟通</div>
+        <div class="ob-desc">知音会以这个身份与对方沟通</div>
         <input class="ob-input" id="obName" placeholder="请输入你的称呼">
       </div>
     </div>
@@ -338,7 +335,7 @@
       <div class="tab-panel active" id="panelHome">
         <div class="card id-card">
           <div class="id-card-left">
-            <div class="id-card-label">你的知声来电链接</div>
+            <div class="id-card-label">你的知音来电链接</div>
             <div class="id-card-url" id="callLink">加载中...</div>
           </div>
           <button class="copy-btn" onclick="copyCallLink()">
@@ -347,7 +344,7 @@
         </div>
         <div class="status-indicator">
           <div class="status-dot"></div>
-          <div class="status-text">知声在线守护中</div>
+          <div class="status-text">知音在线，随时替你接听</div>
         </div>
         <div class="section-title">通话记录</div>
         <div id="callList"></div>
@@ -355,11 +352,11 @@
 
       <!-- Tab 2: Tasks -->
       <div class="tab-panel" id="panelTasks">
-        <div class="section-title">新建代打任务</div>
+        <div class="section-title">新建拨出任务</div>
         <div class="card task-form">
           <input class="input" id="taskTarget" placeholder="对方称呼（如：张医生）">
-          <textarea class="textarea" id="taskInstruction" placeholder="指令内容（如：帮我预约下周三下午的门诊）"></textarea>
-          <button class="btn btn-primary" style="width:100%" onclick="createTask()" id="createTaskBtn">生成链接</button>
+          <textarea class="textarea" id="taskInstruction" placeholder="你想让知音替你说什么（如：帮我预约下周三下午的门诊）"></textarea>
+          <button class="btn btn-primary" style="width:100%" onclick="createTask()" id="createTaskBtn">生成通话链接</button>
         </div>
         <div class="section-title">已创建任务</div>
         <div id="taskList"></div>
@@ -367,11 +364,11 @@
 
       <!-- Tab 3: Shaping -->
       <div class="tab-panel" id="panelShaping">
-        <div class="section-title">塑造知声</div>
+        <div class="section-title">塑造知音</div>
         <div class="card">
           <div class="shaping-input-group">
-            <textarea class="textarea" id="shapingInput" placeholder="告诉知声你的偏好...&#10;例如：如果是快递电话，直接让对方放驿站"></textarea>
-            <button class="btn btn-primary" onclick="addShaping()" id="addShapingBtn" style="height:60px">教给知声</button>
+            <textarea class="textarea" id="shapingInput" placeholder="告诉知音你的偏好...&#10;例如：如果是快递电话，直接让对方放驿站"></textarea>
+            <button class="btn btn-primary" onclick="addShaping()" id="addShapingBtn" style="height:60px">教给知音</button>
           </div>
         </div>
         <div class="knowledge-group">
@@ -383,7 +380,7 @@
             </div>
           </div>
         </div>
-        <div class="section-title">知声已经学会的</div>
+        <div class="section-title">知音已经学会的</div>
         <div class="card" id="shapingList" style="padding:4px 16px"></div>
       </div>
 
@@ -408,6 +405,36 @@
             <div class="settings-row">
               <span class="settings-label">公司</span>
               <input class="settings-input" id="profileCompany" placeholder="未设置">
+            </div>
+          </div>
+        </div>
+        <div class="settings-group">
+          <div class="settings-group-title">音色设置</div>
+          <div class="settings-card">
+            <div class="settings-row">
+              <span class="settings-label">声音模式</span>
+              <select class="settings-input" id="voiceMode" onchange="toggleVoiceOptions()">
+                <option value="preset">选择预设音色</option>
+                <option value="clone">克隆我的声音</option>
+              </select>
+            </div>
+            <div class="settings-row" id="presetVoiceRow">
+              <span class="settings-label">预设音色</span>
+              <select class="settings-input" id="voicePreset">
+                <option value="v-male-W1tH9jVc">自然男声</option>
+                <option value="v-female-qingxin">清新女声</option>
+                <option value="v-male-chenshu">沉稳男声</option>
+                <option value="v-female-wenrou">温柔女声</option>
+              </select>
+            </div>
+            <div class="settings-row" id="cloneVoiceRow" style="display:none">
+              <span class="settings-label">克隆音色</span>
+              <span class="settings-value" id="cloneStatus">未上传</span>
+            </div>
+            <div id="cloneUploadRow" style="display:none;padding:12px 16px">
+              <p style="font-size:12px;color:var(--text-3);margin-bottom:8px">上传一段 10-30 秒的语音录音，知音将学习你的声音</p>
+              <input type="file" id="voiceFile" accept="audio/*" style="font-size:13px;color:var(--text-2)">
+              <button class="btn btn-primary" style="margin-top:8px;width:100%;height:36px;font-size:13px" onclick="uploadVoiceClone()">上传并克隆</button>
             </div>
           </div>
         </div>
@@ -450,7 +477,7 @@
   <div class="call-modal" id="callModal">
     <div class="call-modal-icon">📱</div>
     <div class="call-modal-title" id="callModalTitle">来电</div>
-    <div class="call-modal-sub" id="callModalSub">知声正在接听...</div>
+    <div class="call-modal-sub" id="callModalSub">知音正在替你接听...</div>
     <div class="call-modal-actions">
       <button class="call-action-btn call-decline" onclick="declineCall()">✕</button>
       <button class="call-action-btn call-accept" onclick="acceptCall()">✓</button>
@@ -480,8 +507,11 @@ setTimeout(() => {
 }, 600);
 
 // ===== Auth =====
+function getToken() { return localStorage.getItem('zs_token'); }
+function getHeaders() { return { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + getToken() }; }
+
 function checkAuth() {
-  const token = localStorage.getItem('zs_token');
+  const token = getToken();
   if (token) {
     const onboarded = localStorage.getItem('zs_onboarded');
     if (!onboarded) {
@@ -495,37 +525,59 @@ function checkAuth() {
 }
 
 // ===== Login =====
-function sendSms() {
-  const phone = document.getElementById('loginPhone').value.trim();
-  if (phone.length !== 11) { showToast('请输入正确的手机号'); return; }
-  const btn = document.getElementById('smsBtn');
-  btn.disabled = true;
-  let sec = 60;
-  btn.textContent = sec + 's';
-  const t = setInterval(() => { sec--; btn.textContent = sec + 's'; if (sec <= 0) { clearInterval(t); btn.disabled = false; btn.textContent = '获取验证码'; } }, 1000);
-  showToast('验证码已发送');
-}
-
 async function doLogin() {
-  const phone = document.getElementById('loginPhone').value.trim();
-  const code = document.getElementById('loginCode').value.trim();
-  if (!phone || !code) { showToast('请填写手机号和验证码'); return; }
+  const username = document.getElementById('loginUsername').value.trim();
+  const password = document.getElementById('loginPassword').value.trim();
+  if (!username || !password) { showToast('请填写用户名和密码'); return; }
   const btn = document.getElementById('loginBtn');
   setLoading(btn, true);
-  // Simulate login
-  await sleep(800);
-  localStorage.setItem('zs_token', 'demo_token_' + phone);
-  localStorage.setItem('zs_phone', phone);
-  setLoading(btn, false);
-  document.getElementById('loginPage').classList.add('hidden');
-  showOnboarding();
+  try {
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password }),
+    });
+    const data = await res.json();
+    if (data.error) { showToast(data.error); setLoading(btn, false); return; }
+    localStorage.setItem('zs_token', data.token);
+    localStorage.setItem('zs_userId', data.userId);
+    localStorage.setItem('zs_username', data.username);
+    setLoading(btn, false);
+    document.getElementById('loginPage').classList.add('hidden');
+    const onboarded = localStorage.getItem('zs_onboarded');
+    if (!onboarded) showOnboarding(); else showMainApp();
+  } catch (err) {
+    showToast('网络错误');
+    setLoading(btn, false);
+  }
 }
 
-function demoLogin() {
-  localStorage.setItem('zs_token', 'demo_token');
-  localStorage.setItem('zs_phone', '13800000000');
-  document.getElementById('loginPage').classList.add('hidden');
-  showOnboarding();
+async function doRegister() {
+  const username = document.getElementById('loginUsername').value.trim();
+  const password = document.getElementById('loginPassword').value.trim();
+  if (!username || !password) { showToast('请填写用户名和密码'); return; }
+  if (username.length < 2) { showToast('用户名至少 2 个字符'); return; }
+  if (password.length < 4) { showToast('密码至少 4 位'); return; }
+  const btn = document.getElementById('registerBtn');
+  setLoading(btn, true);
+  try {
+    const res = await fetch('/api/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password, nickname: username }),
+    });
+    const data = await res.json();
+    if (data.error) { showToast(data.error); setLoading(btn, false); return; }
+    localStorage.setItem('zs_token', data.token);
+    localStorage.setItem('zs_userId', data.userId);
+    localStorage.setItem('zs_username', data.username);
+    setLoading(btn, false);
+    document.getElementById('loginPage').classList.add('hidden');
+    showOnboarding();
+  } catch (err) {
+    showToast('网络错误');
+    setLoading(btn, false);
+  }
 }
 
 // ===== Onboarding =====
@@ -588,8 +640,9 @@ function switchTab(el) {
 
 // ===== Home: Call Link =====
 function loadCallLink() {
+  const userId = localStorage.getItem('zs_userId');
   const host = location.host;
-  const link = host + '/call.html';
+  const link = host + '/call.html?owner=' + userId;
   document.getElementById('callLink').textContent = link;
 }
 
@@ -602,7 +655,7 @@ function copyCallLink() {
 async function loadCalls() {
   loadCallLink();
   try {
-    const res = await fetch('/api/calls');
+    const res = await fetch('/api/calls', { headers: getHeaders() });
     if (!res.ok) throw new Error();
     const calls = await res.json();
     renderCalls(calls);
@@ -637,37 +690,40 @@ function startPolling() {
 
 async function pollNotifications() {
   try {
-    const res = await fetch('/api/notifications');
+    const res = await fetch('/api/notifications', { headers: getHeaders() });
     if (!res.ok) return;
     const data = await res.json();
-    if (data && data.type === 'incoming_call' && (!currentNotification || currentNotification.id !== data.id)) {
-      currentNotification = data;
-      showCallModal(data);
+    if (Array.isArray(data) && data.length > 0) {
+      const notif = data[0];
+      if (notif.type === 'transfer' || notif.type === 'incoming_call') {
+        currentNotification = notif;
+        showCallModal(notif);
+      }
     }
   } catch(e) {}
 }
 
 function showCallModal(data) {
   document.getElementById('callModalTitle').textContent = data.callerName || '来电';
-  document.getElementById('callModalSub').textContent = data.message || '知声正在接听...';
+  document.getElementById('callModalSub').textContent = data.message || '知音正在替你接听...';
   document.getElementById('callModal').classList.add('show');
 }
 
 async function acceptCall() {
   document.getElementById('callModal').classList.remove('show');
   showToast('正在接入通话...');
+  const userId = 'owner_' + localStorage.getItem('zs_userId');
   try {
-    const res = await fetch('/api/usersig/owner_xiaochen');
+    const res = await fetch(`/api/usersig/${userId}`);
     if (!res.ok) throw new Error();
     const data = await res.json();
-    // Join TRTC room
     if (window.TRTC) {
       const trtc = TRTC.create();
       await trtc.enterRoom({
         sdkAppId: data.sdkAppId,
         userId: data.userId,
         userSig: data.userSig,
-        roomId: data.roomId || currentNotification.roomId
+        roomId: currentNotification.roomId
       });
       await trtc.startLocalAudio();
       showToast('已接入通话');
@@ -687,7 +743,7 @@ function declineCall() {
 // ===== Tab 2: Tasks =====
 async function loadTasks() {
   try {
-    const res = await fetch('/api/outbound');
+    const res = await fetch('/api/outbound', { headers: getHeaders() });
     if (!res.ok) throw new Error();
     const tasks = await res.json();
     renderTasks(tasks);
@@ -699,15 +755,16 @@ async function loadTasks() {
 function renderTasks(tasks) {
   const el = document.getElementById('taskList');
   if (!tasks || tasks.length === 0) {
-    el.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📋</div><div class="empty-state-text">暂无代打任务</div></div>';
+    el.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📋</div><div class="empty-state-text">暂无拨出任务</div></div>';
     return;
   }
   el.innerHTML = tasks.map(t => {
-    const status = t.status === 'completed' ? 'badge-green' : t.status === 'in_progress' ? 'badge-orange' : 'badge-blue';
-    const statusText = t.status === 'completed' ? '已完成' : t.status === 'in_progress' ? '通话中' : '等待接听';
-    return `<div class="card task-item" onclick="copyTaskLink('${esc(t.link || t.id || '')}')">
-      <div class="task-top"><span class="task-name">${esc(t.targetName || '未知')}</span><span class="badge ${status}">${statusText}</span></div>
+    const status = t.status === 'completed' ? 'badge-green' : t.status === 'active' ? 'badge-orange' : 'badge-blue';
+    const statusText = t.status === 'completed' ? '已完成' : t.status === 'active' ? '通话中' : '等待接听';
+    return `<div class="card task-item" onclick="copyTaskLink('${esc(t.callLink || '')}')">
+      <div class="task-top"><span class="task-name">${esc(t.targetName || '对方')}</span><span class="badge ${status}">${statusText}</span></div>
       <div class="task-instruction">${esc(t.instruction || '')}</div>
+      ${t.callLink && t.status === 'pending' ? `<div style="font-size:12px;color:var(--blue);margin-top:4px;word-break:break-all">点击复制链接发给对方</div>` : ''}
     </div>`;
   }).join('');
 }
@@ -715,23 +772,23 @@ function renderTasks(tasks) {
 async function createTask() {
   const target = document.getElementById('taskTarget').value.trim();
   const instruction = document.getElementById('taskInstruction').value.trim();
-  if (!target || !instruction) { showToast('请填写完整信息'); return; }
+  if (!instruction) { showToast('请填写指令内容'); return; }
   const btn = document.getElementById('createTaskBtn');
   setLoading(btn, true);
   try {
     const res = await fetch('/api/outbound/create', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ targetName: target, instruction })
+      headers: getHeaders(),
+      body: JSON.stringify({ targetName: target || '对方', instruction })
     });
     if (!res.ok) throw new Error();
     const data = await res.json();
-    showToast('任务已创建');
+    showToast(data.targetIsRegistered ? '已通知对方' : '链接已生成');
     document.getElementById('taskTarget').value = '';
     document.getElementById('taskInstruction').value = '';
     loadTasks();
-    if (data.link) {
-      navigator.clipboard.writeText(data.link).then(() => showToast('链接已复制'));
+    if (data.callLink && !data.targetIsRegistered) {
+      navigator.clipboard.writeText(data.callLink).then(() => showToast('链接已复制，发给对方即可'));
     }
   } catch(e) {
     showToast('创建失败');
@@ -751,7 +808,7 @@ let knowledgeItems = [];
 
 async function loadShaping() {
   try {
-    const res = await fetch('/api/shaping');
+    const res = await fetch('/api/shaping', { headers: getHeaders() });
     if (!res.ok) throw new Error();
     shapingRules = await res.json();
   } catch(e) { shapingRules = []; }
@@ -760,7 +817,7 @@ async function loadShaping() {
 
 async function loadKnowledge() {
   try {
-    const res = await fetch('/api/knowledge');
+    const res = await fetch('/api/knowledge', { headers: getHeaders() });
     if (!res.ok) throw new Error();
     knowledgeItems = await res.json();
   } catch(e) { knowledgeItems = []; }
@@ -771,7 +828,7 @@ function renderShapingList() {
   const el = document.getElementById('shapingList');
   let html = '';
   if (shapingRules.length === 0 && knowledgeItems.length === 0) {
-    html = '<div class="empty-state" style="padding:24px"><div class="empty-state-text">还没有教给知声任何东西</div></div>';
+    html = '<div class="empty-state" style="padding:24px"><div class="empty-state-text">还没有教给知音任何东西</div></div>';
   } else {
     shapingRules.forEach((r, i) => {
       const text = typeof r === 'string' ? r : r.instruction || r.text || '';
@@ -795,12 +852,12 @@ async function addShaping() {
   try {
     const res = await fetch('/api/shaping', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getHeaders(),
       body: JSON.stringify({ instruction: text })
     });
     if (!res.ok) throw new Error();
     input.value = '';
-    showToast('已教给知声');
+    showToast('已教给知音');
     loadShaping();
   } catch(e) { showToast('添加失败'); }
   setLoading(btn, false);
@@ -808,7 +865,7 @@ async function addShaping() {
 
 async function deleteShaping(index) {
   try {
-    const res = await fetch('/api/shaping/' + index, { method: 'DELETE' });
+    const res = await fetch('/api/shaping/' + index, { method: 'DELETE', headers: getHeaders() });
     if (!res.ok) throw new Error();
     showToast('已删除');
     loadShaping();
@@ -824,7 +881,7 @@ async function addKnowledge() {
   try {
     const res = await fetch('/api/knowledge', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getHeaders(),
       body: JSON.stringify({ text, source: 'manual' })
     });
     if (!res.ok) throw new Error();
@@ -838,7 +895,7 @@ async function addKnowledge() {
 async function deleteKnowledge(id) {
   if (!id) return;
   try {
-    const res = await fetch('/api/knowledge/' + id, { method: 'DELETE' });
+    const res = await fetch('/api/knowledge/' + id, { method: 'DELETE', headers: getHeaders() });
     if (!res.ok) throw new Error();
     showToast('已删除');
     loadKnowledge();
@@ -848,30 +905,43 @@ async function deleteKnowledge(id) {
 // ===== Tab 4: Profile =====
 async function loadProfile() {
   try {
-    const res = await fetch('/api/profile');
+    const res = await fetch('/api/profile', { headers: getHeaders() });
     if (!res.ok) throw new Error();
     profile = await res.json();
-    document.getElementById('profileName').value = profile.name || '';
-    document.getElementById('profileNickname').value = profile.nickname || '';
-    document.getElementById('profileTitle').value = profile.title || '';
-    document.getElementById('profileCompany').value = profile.company || '';
-    document.getElementById('notifyMethod').textContent = profile.notifyMethod || '浏览器推送';
+    document.getElementById('profileName').value = profile.identity?.name || '';
+    document.getElementById('profileNickname').value = profile.identity?.nickname || '';
+    document.getElementById('profileTitle').value = profile.identity?.role || '';
+    document.getElementById('profileCompany').value = profile.identity?.company || '';
+    document.getElementById('notifyMethod').textContent = '浏览器推送';
+    loadVoiceSettings();
   } catch(e) {}
 }
 
 async function saveProfile() {
   const btn = document.getElementById('saveProfileBtn');
   setLoading(btn, true);
+  const voiceMode = document.getElementById('voiceMode').value;
   const data = {
-    name: document.getElementById('profileName').value.trim(),
-    nickname: document.getElementById('profileNickname').value.trim(),
-    title: document.getElementById('profileTitle').value.trim(),
-    company: document.getElementById('profileCompany').value.trim()
+    identity: {
+      name: document.getElementById('profileName').value.trim(),
+      nickname: document.getElementById('profileNickname').value.trim(),
+      role: document.getElementById('profileTitle').value.trim(),
+      company: document.getElementById('profileCompany').value.trim()
+    },
+    voice: {
+      mode: voiceMode,
+      voice_id: voiceMode === 'preset' ? document.getElementById('voicePreset').value : (profile.voice?.clone_voice_id || ''),
+      clone_voice_id: profile.voice?.clone_voice_id || null,
+      tts_type: 'flow',
+      model: 'flow_01_turbo',
+      speed: 1.0,
+      language: 'zh'
+    }
   };
   try {
     const res = await fetch('/api/profile', {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getHeaders(),
       body: JSON.stringify(data)
     });
     if (!res.ok) throw new Error();
@@ -884,9 +954,42 @@ function doLogout() {
   if (!confirm('确定退出登录？')) return;
   localStorage.removeItem('zs_token');
   localStorage.removeItem('zs_onboarded');
-  localStorage.removeItem('zs_phone');
+  localStorage.removeItem('zs_userId');
+  localStorage.removeItem('zs_username');
   if (pollTimer) clearInterval(pollTimer);
   location.reload();
+}
+
+// ===== Voice Settings =====
+function toggleVoiceOptions() {
+  const mode = document.getElementById('voiceMode').value;
+  document.getElementById('presetVoiceRow').style.display = mode === 'preset' ? 'flex' : 'none';
+  document.getElementById('cloneVoiceRow').style.display = mode === 'clone' ? 'flex' : 'none';
+  document.getElementById('cloneUploadRow').style.display = mode === 'clone' ? 'block' : 'none';
+}
+
+function loadVoiceSettings() {
+  if (profile.voice) {
+    document.getElementById('voiceMode').value = profile.voice.mode || 'preset';
+    if (profile.voice.mode === 'preset' && profile.voice.voice_id) {
+      document.getElementById('voicePreset').value = profile.voice.voice_id;
+    }
+    if (profile.voice.clone_voice_id) {
+      document.getElementById('cloneStatus').textContent = '已克隆';
+      document.getElementById('cloneStatus').style.color = 'var(--green)';
+    }
+    toggleVoiceOptions();
+  }
+}
+
+async function uploadVoiceClone() {
+  const fileInput = document.getElementById('voiceFile');
+  if (!fileInput.files[0]) { showToast('请选择音频文件'); return; }
+  showToast('声音克隆功能开发中，敬请期待');
+  // TODO: 实际对接 TTS 声音克隆 API
+  // 1. 上传音频到后端
+  // 2. 后端调用 TTS 克隆 API 获取 clone_voice_id
+  // 3. 返回 clone_voice_id 写入 profile.voice.clone_voice_id
 }
 
 // ===== Utils =====

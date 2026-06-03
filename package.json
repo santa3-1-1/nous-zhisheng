@@ -1,7 +1,7 @@
 {
   "name": "nous-zhisheng-demo",
   "version": "0.1.0",
-  "description": "知声 - AI电话分身 Demo",
+  "description": "知音 - AI电话分身 Demo",
   "main": "server/index.js",
   "type": "module",
   "engines": {

@@ -19,11 +19,14 @@ import { generateSummary } from './engine/summary.js';
 import { buildRubricPrompt, calculateTransferScore, shouldTransfer, DEFAULT_WEIGHTS } from './engine/rubric.js';
 import { sendTransferNotify } from './transfer/notify.js';
 import { initKnowledge, addKnowledge, searchKnowledge, getAllKnowledge, loadProfileKnowledge } from './rag/knowledge.js';
-import { createCall, endCall, addTranscript, getCalls, getCall } from './db/store.js';
-import { readFileSync } from 'fs';
+import {
+  register, login, authMiddleware,
+  getUserProfile, saveUserProfile,
+  getUserCalls, saveUserCalls,
+  getUserKnowledge, saveUserKnowledge,
+  findUserByUsername, getAllUsers
+} from './auth/users.js';
 import OpenAI from 'openai';
-
-const profile = JSON.parse(readFileSync(new URL('../profiles/default.json', import.meta.url), 'utf-8'));
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -35,29 +38,226 @@ app.use(express.static(join(__dirname, '../web')));
 // 存储活跃的 AI 对话任务
 const activeSessions = new Map();
 
+// 存储待处理的转接通知（每用户独立）
+const pendingNotifications = new Map(); // userId → [notifications]
+
+// 代打任务
+const outboundTasks = new Map(); // outboundId → task
+
 // =============================================
-// API Routes
+// 公开 API（无需登录）
 // =============================================
 
-// --- TRTC 鉴权 ---
+// --- 注册 ---
+app.post('/api/auth/register', (req, res) => {
+  const { username, password, nickname } = req.body;
+  const result = register(username, password, nickname);
+  if (result.error) return res.status(400).json(result);
+  res.json(result);
+});
+
+// --- 登录 ---
+app.post('/api/auth/login', (req, res) => {
+  const { username, password } = req.body;
+  const result = login(username, password);
+  if (result.error) return res.status(400).json(result);
+  res.json(result);
+});
+
+// --- TRTC 鉴权（来电方也需要，所以公开）---
 app.get('/api/usersig/:userId', (req, res) => {
   const { userId } = req.params;
   const sig = generateUserSig(userId);
   res.json({ sdkAppId: config.trtc.sdkAppId, userId, userSig: sig });
 });
 
-// --- AI 对话管理 ---
-app.post('/api/ai/start', async (req, res) => {
-  const { roomId, targetUserId } = req.body;
-  if (!roomId || !targetUserId) {
-    return res.status(400).json({ error: 'roomId and targetUserId required' });
-  }
+// --- 来电方入口：获取机主公开信息 ---
+app.get('/api/public/profile/:userId', (req, res) => {
+  const profile = getUserProfile(req.params.userId);
+  // 只返回公开信息
+  res.json({
+    nickname: profile.identity.nickname || '知音用户',
+    greeting: profile.greeting || '',
+  });
+});
+
+// --- 来电方发起通话（无需登录）---
+app.post('/api/call/start', async (req, res) => {
+  const { callerId, ownerUserId } = req.body;
+  if (!callerId || !ownerUserId) return res.status(400).json({ error: 'callerId and ownerUserId required' });
+
+  const profile = getUserProfile(ownerUserId);
+  const roomId = Math.floor(10000 + Math.random() * 90000);
 
   try {
-    // RAG 检索（用开场白触发一次上下文加载）
-    const ragContext = await searchKnowledge('用户信息 偏好 规则', 5);
+    const ragContext = []; // TODO: per-user RAG
     const systemPrompt = buildSystemPrompt(profile, ragContext);
-    
+
+    const result = await startAIConversation({
+      roomId,
+      targetUserId: callerId,
+      systemPrompt,
+      profile,
+    });
+
+    const sessionId = `session_${roomId}_${Date.now()}`;
+    const calls = getUserCalls(ownerUserId);
+    const callRecord = {
+      id: calls.length + 1,
+      session_id: sessionId,
+      task_id: result.TaskId,
+      room_id: roomId,
+      caller_id: callerId,
+      start_time: new Date().toISOString(),
+      end_time: null,
+      duration_seconds: null,
+      action_taken: 'in_progress',
+      summary: null,
+      transcript: [],
+    };
+    calls.push(callRecord);
+    saveUserCalls(ownerUserId, calls);
+
+    activeSessions.set(result.TaskId, {
+      sessionId, callId: callRecord.id, roomId, targetUserId: callerId,
+      startTime: Date.now(), ownerUserId,
+    });
+
+    res.json({ success: true, taskId: result.TaskId, roomId, sdkAppId: config.trtc.sdkAppId });
+  } catch (err) {
+    console.error('[Call Start Error]', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- 代打对方接听（公开 API）---
+app.get('/api/outbound/:id', (req, res) => {
+  const task = outboundTasks.get(req.params.id);
+  if (!task) return res.status(404).json({ error: 'Task not found' });
+  // 返回给对方的信息（不暴露内部指令）
+  res.json({
+    id: task.id,
+    roomId: task.roomId,
+    ownerName: task.ownerName || '',
+    targetName: task.targetName,
+    status: task.status,
+  });
+});
+
+app.post('/api/outbound/start', async (req, res) => {
+  const { outboundId, callerId } = req.body;
+  const task = outboundTasks.get(outboundId);
+  if (!task) return res.status(404).json({ error: 'Task not found' });
+
+  try {
+    const profile = getUserProfile(task.ownerUserId);
+    const systemPrompt = buildOutboundPrompt(profile, task);
+
+    const result = await startAIConversation({
+      roomId: task.roomId,
+      targetUserId: callerId,
+      systemPrompt,
+      profile,
+    });
+
+    task.status = 'active';
+    task.taskId = result.TaskId;
+
+    const sessionId = `outbound_${task.roomId}_${Date.now()}`;
+    const calls = getUserCalls(task.ownerUserId);
+    const callRecord = {
+      id: calls.length + 1,
+      session_id: sessionId,
+      task_id: result.TaskId,
+      room_id: task.roomId,
+      caller_id: `outbound→${task.targetName}`,
+      start_time: new Date().toISOString(),
+      end_time: null,
+      duration_seconds: null,
+      action_taken: 'in_progress',
+      summary: null,
+      transcript: [],
+    };
+    calls.push(callRecord);
+    saveUserCalls(task.ownerUserId, calls);
+
+    activeSessions.set(result.TaskId, {
+      sessionId, callId: callRecord.id, roomId: task.roomId,
+      targetUserId: callerId, startTime: Date.now(),
+      ownerUserId: task.ownerUserId, outboundId,
+    });
+
+    res.json({ success: true, taskId: result.TaskId, roomId: task.roomId });
+  } catch (err) {
+    console.error('[Outbound Start Error]', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- Rubric 评分（来电方调用）---
+const deepseekClient = new OpenAI({ baseURL: config.deepseek.baseUrl, apiKey: config.deepseek.apiKey });
+
+app.post('/api/rubric/evaluate', async (req, res) => {
+  const { transcript, mode, ownerUserId } = req.body;
+  if (!transcript || transcript.length === 0) return res.json({ shouldTransfer: false, score: 0, rubric: {} });
+
+  const profile = ownerUserId ? getUserProfile(ownerUserId) : { identity: {}, rules: {}, shaping: [] };
+  const conversationText = transcript.map(t => `${t.role === 'caller' ? '来电方' : '知音（我）'}: ${t.text}`).join('\n');
+  const rubricPrompt = buildRubricPrompt(profile);
+
+  try {
+    const response = await deepseekClient.chat.completions.create({
+      model: config.deepseek.model,
+      messages: [
+        { role: 'system', content: `你是一个转接评分器。根据以下对话和用户画像，对当前对话状态进行 rubric 评分。\n\n## 用户画像\n- 姓名：${profile.identity.name}\n- 必须转接的人：${(profile.rules?.always_transfer||[]).join('、')}\n- 可自动处理的：${(profile.rules?.auto_handle||[]).join('、')}\n- 禁止做的：${(profile.rules?.forbidden_actions||[]).join('、')}\n${profile.shaping?.length > 0 ? '\n## 塑造记录\n' + profile.shaping.map(s => '- ' + s).join('\n') : ''}\n${rubricPrompt}\n\n只输出 JSON，不要其他内容。` },
+        { role: 'user', content: `对话内容：\n${conversationText}\n\n请输出 rubric 评分 JSON：` },
+      ],
+      max_tokens: 200,
+      temperature: 0,
+      response_format: { type: 'json_object' },
+    });
+
+    const raw = response.choices[0].message.content;
+    let rubricScores = {};
+    try { rubricScores = JSON.parse(raw).rubric || JSON.parse(raw); } catch { rubricScores = {}; }
+
+    const weights = profile.rubric_weights || DEFAULT_WEIGHTS;
+    const score = calculateTransferScore(rubricScores, weights);
+    const transfer = shouldTransfer(score, mode || 'inbound', profile.transfer_threshold);
+
+    res.json({ shouldTransfer: transfer, score, rubric: rubricScores, threshold: profile.transfer_threshold || 6.0 });
+  } catch (err) {
+    console.error('[Rubric Evaluate Error]', err.message);
+    res.json({ shouldTransfer: false, score: 0, rubric: {}, error: err.message });
+  }
+});
+
+// =============================================
+// 需要登录的 API
+// =============================================
+
+// --- Profile ---
+app.get('/api/profile', authMiddleware, (req, res) => {
+  res.json(getUserProfile(req.userId));
+});
+
+app.put('/api/profile', authMiddleware, (req, res) => {
+  const profile = getUserProfile(req.userId);
+  Object.assign(profile, req.body);
+  saveUserProfile(req.userId, profile);
+  res.json({ success: true, profile });
+});
+
+// --- AI 对话管理（机主端）---
+app.post('/api/ai/start', authMiddleware, async (req, res) => {
+  const { roomId, targetUserId } = req.body;
+  if (!roomId || !targetUserId) return res.status(400).json({ error: 'roomId and targetUserId required' });
+
+  const profile = getUserProfile(req.userId);
+  try {
+    const ragContext = [];
+    const systemPrompt = buildSystemPrompt(profile, ragContext);
+
     const result = await startAIConversation({
       roomId: parseInt(roomId),
       targetUserId,
@@ -65,52 +265,56 @@ app.post('/api/ai/start', async (req, res) => {
       profile,
     });
 
-    // 记录通话
     const sessionId = `session_${roomId}_${Date.now()}`;
-    const callId = createCall({
-      sessionId,
-      taskId: result.TaskId,
-      roomId: parseInt(roomId),
-      callerId: targetUserId,
-    });
+    const calls = getUserCalls(req.userId);
+    const callRecord = {
+      id: calls.length + 1,
+      session_id: sessionId,
+      task_id: result.TaskId,
+      room_id: parseInt(roomId),
+      caller_id: targetUserId,
+      start_time: new Date().toISOString(),
+      end_time: null,
+      duration_seconds: null,
+      action_taken: 'in_progress',
+      summary: null,
+      transcript: [],
+    };
+    calls.push(callRecord);
+    saveUserCalls(req.userId, calls);
 
-    // 存储活跃会话
     activeSessions.set(result.TaskId, {
-      sessionId,
-      callId,
-      roomId: parseInt(roomId),
-      targetUserId,
-      startTime: Date.now(),
+      sessionId, callId: callRecord.id, roomId: parseInt(roomId),
+      targetUserId, startTime: Date.now(), ownerUserId: req.userId,
     });
 
-    res.json({ success: true, taskId: result.TaskId, sessionId, callId });
+    res.json({ success: true, taskId: result.TaskId, sessionId, callId: callRecord.id });
   } catch (err) {
     console.error('[StartAIConversation Error]', err.message);
     res.status(500).json({ error: err.message });
   }
 });
 
-app.post('/api/ai/stop', async (req, res) => {
+app.post('/api/ai/stop', authMiddleware, async (req, res) => {
   const { taskId } = req.body;
   if (!taskId) return res.status(400).json({ error: 'taskId required' });
 
   try {
     await stopAIConversation(taskId);
-    
-    // 结束通话记录 + 生成纪要
     const session = activeSessions.get(taskId);
     if (session) {
       const duration = Math.floor((Date.now() - session.startTime) / 1000);
-      const call = getCall(session.callId);
+      const calls = getUserCalls(session.ownerUserId);
+      const call = calls.find(c => c.id === session.callId);
       const summary = await generateSummary(call?.transcript || []);
-      
-      endCall({
-        sessionId: session.sessionId,
-        action: 'ended',
-        summary,
-        duration,
-      });
 
+      if (call) {
+        call.end_time = new Date().toISOString();
+        call.action_taken = 'ended';
+        call.summary = summary;
+        call.duration_seconds = duration;
+        saveUserCalls(session.ownerUserId, calls);
+      }
       activeSessions.delete(taskId);
       res.json({ success: true, summary, duration });
     } else {
@@ -122,10 +326,9 @@ app.post('/api/ai/stop', async (req, res) => {
   }
 });
 
-app.post('/api/ai/speak', async (req, res) => {
+app.post('/api/ai/speak', authMiddleware, async (req, res) => {
   const { taskId, text } = req.body;
   if (!taskId || !text) return res.status(400).json({ error: 'taskId and text required' });
-
   try {
     await controlAIConversation(taskId, text);
     res.json({ success: true });
@@ -140,45 +343,40 @@ app.post('/api/transfer', async (req, res) => {
   if (!taskId || !roomId) return res.status(400).json({ error: 'taskId and roomId required' });
 
   try {
-    // 根据实际对话内容生成摘要（不用前端硬编码的）
-    let summary = clientSummary || '来电方请求与本人通话';
+    let summary = clientSummary || '来电方请求直接沟通';
     const session = activeSessions.get(taskId);
+    let ownerUserId = session?.ownerUserId;
+
     if (session) {
-      const call = getCall(session.callId);
+      const calls = getUserCalls(ownerUserId);
+      const call = calls.find(c => c.id === session.callId);
       if (call?.transcript?.length > 0) {
-        // 有对话记录 → AI 生成转接摘要
         summary = await generateSummary(call.transcript);
       }
     }
 
-    // 发送企微通知（兜底）+ 推到 App 内通知队列
-    await sendTransferNotify({
-      summary,
-      urgency: urgency || 7,
-      callerInfo: callerInfo || '未知来电',
-      roomId,
-      taskId,
-    });
+    await sendTransferNotify({ summary, urgency: urgency || 7, callerInfo: callerInfo || '未知来电', roomId, taskId });
 
-    // 推到 App 内通知队列（机主轮询获取）
-    pendingNotifications.push({
-      type: 'transfer',
-      taskId,
-      roomId,
-      summary,
-      urgency: urgency || 7,
-      callerInfo: callerInfo || '未知来电',
-      timestamp: Date.now(),
-    });
-
-    // 更新通话状态
-    if (session) {
-      endCall({
-        sessionId: session.sessionId,
-        action: 'transferred',
-        summary,
-        duration: Math.floor((Date.now() - session.startTime) / 1000),
+    // 推到对应用户的通知队列
+    if (ownerUserId) {
+      if (!pendingNotifications.has(ownerUserId)) pendingNotifications.set(ownerUserId, []);
+      pendingNotifications.get(ownerUserId).push({
+        type: 'transfer', taskId, roomId, summary,
+        urgency: urgency || 7, callerInfo: callerInfo || '未知来电',
+        timestamp: Date.now(),
       });
+    }
+
+    if (session) {
+      const calls = getUserCalls(ownerUserId);
+      const call = calls.find(c => c.id === session.callId);
+      if (call) {
+        call.end_time = new Date().toISOString();
+        call.action_taken = 'transferred';
+        call.summary = summary;
+        call.duration_seconds = Math.floor((Date.now() - session.startTime) / 1000);
+        saveUserCalls(ownerUserId, calls);
+      }
     }
 
     res.json({ success: true, summary, message: '转接通知已发送' });
@@ -189,257 +387,151 @@ app.post('/api/transfer', async (req, res) => {
 });
 
 // --- 通话记录 ---
-app.get('/api/calls', (req, res) => {
+app.get('/api/calls', authMiddleware, (req, res) => {
   const limit = parseInt(req.query.limit) || 50;
-  res.json(getCalls(limit));
+  const calls = getUserCalls(req.userId);
+  res.json([...calls].reverse().slice(0, limit));
 });
 
-app.get('/api/calls/:id', (req, res) => {
-  const call = getCall(parseInt(req.params.id));
+app.get('/api/calls/:id', authMiddleware, (req, res) => {
+  const calls = getUserCalls(req.userId);
+  const call = calls.find(c => c.id === parseInt(req.params.id));
   if (!call) return res.status(404).json({ error: 'Call not found' });
   res.json(call);
 });
 
-// --- RAG 知识库 ---
-app.get('/api/knowledge', (req, res) => {
-  res.json(getAllKnowledge());
+// --- 知识库 ---
+app.get('/api/knowledge', authMiddleware, (req, res) => {
+  res.json(getUserKnowledge(req.userId));
 });
 
-app.post('/api/knowledge', async (req, res) => {
+app.post('/api/knowledge', authMiddleware, (req, res) => {
   const { text, source } = req.body;
   if (!text) return res.status(400).json({ error: 'text required' });
-  
-  const id = await addKnowledge(text, { source: source || 'manual' });
-  res.json({ success: true, id });
+  const knowledge = getUserKnowledge(req.userId);
+  const entry = { id: Date.now(), text, source: source || 'manual', created_at: new Date().toISOString() };
+  knowledge.push(entry);
+  saveUserKnowledge(req.userId, knowledge);
+  res.json({ success: true, id: entry.id });
 });
 
-app.post('/api/knowledge/search', async (req, res) => {
-  const { query, limit } = req.body;
-  if (!query) return res.status(400).json({ error: 'query required' });
-  
-  const results = await searchKnowledge(query, limit || 3);
-  res.json(results);
+app.delete('/api/knowledge/:id', authMiddleware, (req, res) => {
+  const knowledge = getUserKnowledge(req.userId);
+  const idx = knowledge.findIndex(k => k.id === parseInt(req.params.id));
+  if (idx === -1) return res.status(404).json({ error: 'not found' });
+  knowledge.splice(idx, 1);
+  saveUserKnowledge(req.userId, knowledge);
+  res.json({ success: true });
 });
 
-// --- Profile ---
-app.get('/api/profile', (req, res) => {
-  res.json(profile);
-});
-
-app.put('/api/profile', (req, res) => {
-  // 更新 Profile（Demo 版只更新内存，不写文件）
-  Object.assign(profile, req.body);
-  res.json({ success: true, profile });
-});
-
-// --- Rubric 评分 API ---
-const deepseekClient = new OpenAI({ baseURL: config.deepseek.baseUrl, apiKey: config.deepseek.apiKey });
-
-app.post('/api/rubric/evaluate', async (req, res) => {
-  const { transcript, mode } = req.body;
-  // transcript: [{role:'caller'|'nous', text:'...'}]
-  if (!transcript || transcript.length === 0) return res.json({ shouldTransfer: false, score: 0, rubric: {} });
-
-  const conversationText = transcript.map(t => `${t.role === 'caller' ? '来电方' : '知声'}: ${t.text}`).join('\n');
-  const rubricPrompt = buildRubricPrompt(profile);
-
-  try {
-    const response = await deepseekClient.chat.completions.create({
-      model: config.deepseek.model,
-      messages: [
-        { role: 'system', content: `你是一个转接评分器。根据以下对话和机主画像，对当前对话状态进行 rubric 评分。\n\n## 机主画像\n- 姓名：${profile.identity.name}\n- 必须转接的人：${(profile.rules?.always_transfer||[]).join('、')}\n- 可自动处理的：${(profile.rules?.auto_handle||[]).join('、')}\n- 禁止做的：${(profile.rules?.forbidden_actions||[]).join('、')}\n${profile.shaping?.length > 0 ? '\n## 塑造记录\n' + profile.shaping.map(s => '- ' + s).join('\n') : ''}\n${rubricPrompt}\n\n只输出 JSON，不要其他内容。` },
-        { role: 'user', content: `对话内容：\n${conversationText}\n\n请输出 rubric 评分 JSON：` },
-      ],
-      max_tokens: 200,
-      temperature: 0,
-      response_format: { type: 'json_object' },
-    });
-
-    const raw = response.choices[0].message.content;
-    let rubricScores = {};
-    try { rubricScores = JSON.parse(raw).rubric || JSON.parse(raw); } catch { rubricScores = {}; }
-
-    // 用画像权重（如果有）或默认权重
-    const weights = profile.rubric_weights || DEFAULT_WEIGHTS;
-    const score = calculateTransferScore(rubricScores, weights);
-    const transfer = shouldTransfer(score, mode || 'inbound', profile.transfer_threshold);
-
-    res.json({ shouldTransfer: transfer, score, rubric: rubricScores, threshold: profile.transfer_threshold || 6.0 });
-  } catch (err) {
-    console.error('[Rubric Evaluate Error]', err.message);
-    // 降级：解析失败不阻塞，不转接
-    res.json({ shouldTransfer: false, score: 0, rubric: {}, error: err.message });
-  }
-});
-
-// --- 塑造 API ---
-app.get('/api/shaping', (req, res) => {
+// --- 塑造 ---
+app.get('/api/shaping', authMiddleware, (req, res) => {
+  const profile = getUserProfile(req.userId);
   res.json(profile.shaping || []);
 });
 
-app.post('/api/shaping', (req, res) => {
+app.post('/api/shaping', authMiddleware, (req, res) => {
   const { instruction } = req.body;
   if (!instruction) return res.status(400).json({ error: 'instruction required' });
+  const profile = getUserProfile(req.userId);
   if (!profile.shaping) profile.shaping = [];
   profile.shaping.push(instruction);
-  console.log(`[Shaping] 新增塑造: "${instruction}"`);
+  saveUserProfile(req.userId, profile);
   res.json({ success: true, shaping: profile.shaping });
 });
 
-app.delete('/api/shaping/:index', (req, res) => {
+app.delete('/api/shaping/:index', authMiddleware, (req, res) => {
+  const profile = getUserProfile(req.userId);
   const idx = parseInt(req.params.index);
   if (!profile.shaping || idx < 0 || idx >= profile.shaping.length) return res.status(404).json({ error: 'not found' });
   profile.shaping.splice(idx, 1);
+  saveUserProfile(req.userId, profile);
   res.json({ success: true, shaping: profile.shaping });
 });
 
-// --- 来电通知（App内轮询） ---
-// 存储待处理的转接通知
-const pendingNotifications = [];
-
-app.get('/api/notifications', (req, res) => {
-  // 机主App轮询：有新通知就返回，没有就返回空
-  const pending = pendingNotifications.splice(0);
-  res.json(pending);
+// --- 来电通知（机主轮询）---
+app.get('/api/notifications', authMiddleware, (req, res) => {
+  const notifications = pendingNotifications.get(req.userId) || [];
+  pendingNotifications.set(req.userId, []);
+  res.json(notifications);
 });
 
-// --- 代打（机主主动外呼） ---
-const outboundTasks = new Map(); // taskId → {instruction, targetName, status, roomId, ...}
-
-app.post('/api/outbound/create', async (req, res) => {
-  const { instruction, targetName } = req.body;
+// --- 代打（机主创建任务）---
+app.post('/api/outbound/create', authMiddleware, (req, res) => {
+  const { instruction, targetName, targetUsername } = req.body;
   if (!instruction) return res.status(400).json({ error: 'instruction required' });
 
+  const profile = getUserProfile(req.userId);
   const roomId = Math.floor(10000 + Math.random() * 90000);
   const outboundId = 'ob_' + Date.now();
   const SERVER_BASE = process.env.SERVER_BASE_URL || `http://localhost:${config.server.port}`;
   const callLink = `${SERVER_BASE}/outbound.html?id=${outboundId}`;
 
+  // 如果对方也是注册用户，查找他的 userId
+  const targetUserId = targetUsername ? findUserByUsername(targetUsername) : null;
+
   outboundTasks.set(outboundId, {
     id: outboundId,
     instruction,
     targetName: targetName || '对方',
+    targetUsername: targetUsername || null,
+    targetUserId,
+    ownerUserId: req.userId,
+    ownerName: profile.identity.nickname || profile.identity.name || '',
     roomId,
-    status: 'pending', // pending → active → completed / needs_attention
+    status: 'pending',
     callLink,
     taskId: null,
     summary: null,
     createdAt: Date.now(),
   });
 
-  res.json({ success: true, outboundId, callLink, roomId });
+  // 如果对方是注册用户 → 推送来电弹窗
+  if (targetUserId) {
+    if (!pendingNotifications.has(targetUserId)) pendingNotifications.set(targetUserId, []);
+    pendingNotifications.get(targetUserId).push({
+      type: 'incoming_call',
+      outboundId,
+      roomId,
+      callerName: profile.identity.nickname || '知音用户',
+      message: `${profile.identity.nickname || '有人'}有事要跟你说`,
+      timestamp: Date.now(),
+    });
+  }
+
+  res.json({ success: true, outboundId, callLink, roomId, targetIsRegistered: !!targetUserId });
 });
 
-app.get('/api/outbound/:id', (req, res) => {
-  const task = outboundTasks.get(req.params.id);
-  if (!task) return res.status(404).json({ error: 'Task not found' });
-  res.json(task);
-});
-
-app.get('/api/outbound', (req, res) => {
-  const tasks = [...outboundTasks.values()].sort((a, b) => b.createdAt - a.createdAt);
+app.get('/api/outbound', authMiddleware, (req, res) => {
+  const tasks = [...outboundTasks.values()]
+    .filter(t => t.ownerUserId === req.userId)
+    .sort((a, b) => b.createdAt - a.createdAt);
   res.json(tasks);
 });
 
-// 对方接听后启动AI（代打模式）
-app.post('/api/outbound/start', async (req, res) => {
-  const { outboundId, callerId } = req.body;
-  const task = outboundTasks.get(outboundId);
-  if (!task) return res.status(404).json({ error: 'Task not found' });
-
-  try {
-    const systemPrompt = buildOutboundPrompt(profile, task);
-    
-    const result = await startAIConversation({
-      roomId: task.roomId,
-      targetUserId: callerId,
-      systemPrompt,
-      profile,
-    });
-
-    task.status = 'active';
-    task.taskId = result.TaskId;
-
-    // 记录通话
-    const sessionId = `outbound_${task.roomId}_${Date.now()}`;
-    const callId = createCall({
-      sessionId,
-      taskId: result.TaskId,
-      roomId: task.roomId,
-      callerId: `outbound→${task.targetName}`,
-    });
-
-    activeSessions.set(result.TaskId, {
-      sessionId, callId, roomId: task.roomId,
-      targetUserId: callerId, startTime: Date.now(),
-      outboundId,
-    });
-
-    res.json({ success: true, taskId: result.TaskId, roomId: task.roomId });
-  } catch (err) {
-    console.error('[Outbound Start Error]', err.message);
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// --- 来电方入口：直接启动AI对话 ---
-app.post('/api/call/start', async (req, res) => {
-  const { callerId, ownerUserId } = req.body;
-  if (!callerId) return res.status(400).json({ error: 'callerId required' });
-
-  // 自动创建房间号
-  const roomId = Math.floor(10000 + Math.random() * 90000);
-  
-  try {
-    const ragContext = await searchKnowledge('用户信息 偏好 规则', 5);
-    const systemPrompt = buildSystemPrompt(profile, ragContext);
-    
-    const result = await startAIConversation({
-      roomId,
-      targetUserId: callerId,
-      systemPrompt,
-      profile,
-    });
-
-    const sessionId = `session_${roomId}_${Date.now()}`;
-    const callId = createCall({
-      sessionId,
-      taskId: result.TaskId,
-      roomId,
-      callerId,
-    });
-
-    activeSessions.set(result.TaskId, {
-      sessionId, callId, roomId, targetUserId: callerId, startTime: Date.now(),
-    });
-
-    res.json({ success: true, taskId: result.TaskId, roomId, sdkAppId: config.trtc.sdkAppId });
-  } catch (err) {
-    console.error('[Call Start Error]', err.message);
-    res.status(500).json({ error: err.message });
-  }
+// --- 用户信息 ---
+app.get('/api/me', authMiddleware, (req, res) => {
+  res.json({ userId: req.userId, username: req.username });
 });
 
 // =============================================
 // 启动
 // =============================================
 async function start() {
-  // 初始化 RAG
   await initKnowledge();
-  await loadProfileKnowledge(profile);
 
   app.listen(config.server.port, () => {
     console.log(`
 ╔══════════════════════════════════════════════════╗
-║           知声 Nous Demo Server v1.0             ║
+║           知音 Nous Demo Server v2.0             ║
 ║──────────────────────────────────────────────────║
-║  控制面板: http://localhost:${config.server.port}/index.html  ║
-║  来电模拟: http://localhost:${config.server.port}/caller.html ║
-║  接入通话: http://localhost:${config.server.port}/join.html   ║
+║  机主端: http://localhost:${config.server.port}/index.html    ║
+║  来电页: http://localhost:${config.server.port}/call.html     ║
 ║──────────────────────────────────────────────────║
 ║  TRTC AppID: ${config.trtc.sdkAppId}                    ║
 ║  引擎: DeepSeek (${config.deepseek.model})               ║
-║  RAG: ${process.env.QDRANT_URL ? 'Qdrant' : '内存模式（降级）'}                            ║
+║  认证: 账号密码注册 + JWT Token              ║
+║  数据: 每用户独立隔离                         ║
 ╚══════════════════════════════════════════════════╝
     `);
   });

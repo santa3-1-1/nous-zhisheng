@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="theme-color" content="#0a0a0a">
-  <title>知声 — 来电</title>
+  <title>知音 — 来电</title>
   <style>
     :root { --bg:#0a0a0a; --card:#1c1c1e; --border:#2c2c2e; --blue:#0a84ff; --green:#30d158; --orange:#ff9f0a; --red:#ff453a; --text:#fff; --text2:#ebebf5cc; --text3:#ebebf54d; }
     * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
@@ -45,8 +45,8 @@
 <body>
   <div class="container">
     <div class="avatar">📤</div>
-    <h1 id="title">知声来电</h1>
-    <p class="subtitle" id="subtitle">有人通过知声联系你</p>
+    <h1 id="title">来电</h1>
+    <p class="subtitle" id="subtitle">有人通过知音联系你</p>
     <div class="task-desc" id="taskDesc" style="display:none;"></div>
 
     <div class="status-card">
@@ -59,8 +59,8 @@
     <button class="btn btn-green" id="btnAnswer" onclick="answer()">接听</button>
     <button class="btn btn-red" id="btnEnd" onclick="endCall()" disabled>挂断</button>
 
-    <p class="info">这是一通来自知声助手的电话<br>对方的助手有事要跟你沟通</p>
-    <p class="powered">Powered by 知声 Nous</p>
+    <p class="info">这是一通来自对方知音的电话<br>TA 有事要跟你说</p>
+    <p class="powered">Powered by 知音 Nous</p>
   </div>
 
   <script src="/TRTC.js"></script>
@@ -78,8 +78,8 @@
         taskData = await res.json();
         if (taskData.error) { setStatus('任务不存在', 'off'); return; }
         
-        document.getElementById('title').textContent = `来自${taskData.targetName === '对方' ? '知声' : ''}的来电`;
-        document.getElementById('subtitle').textContent = '知声助手有事要跟你说';
+        document.getElementById('title').textContent = taskData.ownerName ? `${taskData.ownerName} 的来电` : '来电';
+        document.getElementById('subtitle').textContent = 'TA 有事要跟你说';
         
         // 不展示具体指令给对方（那是机主的内部指令）
         setStatus('点击接听开始通话', 'off');
