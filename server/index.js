@@ -8,6 +8,7 @@ delete process.env.all_proxy;
 
 import express from 'express';
 import cors from 'cors';
+import { existsSync, statSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import config from './config.js';
@@ -49,14 +50,103 @@ app.use((req, res, next) => {
 
 app.use(express.static(join(__dirname, '../web')));
 
-// 存储活跃的 AI 对话任务
+// =============================================
+// 内存状态（带 TTL 自动清理）
+// =============================================
 const activeSessions = new Map();
-
-// 存储待处理的转接通知（每用户独立）
 const pendingNotifications = new Map(); // userId → [notifications]
+const outboundTasks = new Map();
 
-// 代打任务
-const outboundTasks = new Map(); // outboundId → task
+// 每 5 分钟清理超过 1 小时的过期数据（防内存泄漏）
+setInterval(() => {
+  const ONE_HOUR = 60 * 60 * 1000;
+  const now = Date.now();
+  for (const [id, s] of activeSessions) {
+    if (now - s.startTime > ONE_HOUR) activeSessions.delete(id);
+  }
+  for (const [id, t] of outboundTasks) {
+    if (now - t.createdAt > ONE_HOUR) outboundTasks.delete(id);
+  }
+  for (const [userId, list] of pendingNotifications) {
+    const fresh = list.filter(n => now - n.timestamp < ONE_HOUR);
+    if (fresh.length === 0) pendingNotifications.delete(userId);
+    else pendingNotifications.set(userId, fresh);
+  }
+}, 5 * 60 * 1000);
+
+// =============================================
+// 工具函数
+// =============================================
+function getServerBase(req) {
+  return process.env.SERVER_BASE_URL || `https://${req.headers.host}`;
+}
+
+function generateRoomId() {
+  // 8位数字，碰撞概率极低
+  return Math.floor(10000000 + Math.random() * 90000000);
+}
+
+function safeGetProfile(userId) {
+  try {
+    return getUserProfile(userId);
+  } catch {
+    return { identity: { name: '', nickname: '' }, rules: {}, shaping: [], voice: {} };
+  }
+}
+
+// 深度合并 profile（只更新传入的字段，不覆盖其他）
+function deepMergeProfile(existing, updates) {
+  for (const key of Object.keys(updates)) {
+    if (updates[key] && typeof updates[key] === 'object' && !Array.isArray(updates[key])) {
+      if (!existing[key]) existing[key] = {};
+      Object.assign(existing[key], updates[key]);
+    } else {
+      existing[key] = updates[key];
+    }
+  }
+  return existing;
+}
+
+// 统一拨出逻辑（/api/outbound/create 和 /api/call/dial 共用）
+function createOutboundTask({ req, instruction, targetName, targetUsername }) {
+  const profile = safeGetProfile(req.userId);
+  const roomId = generateRoomId();
+  const outboundId = 'ob_' + Date.now();
+  const SERVER_BASE = getServerBase(req);
+  const targetUserId = targetUsername ? findUserByUsername(targetUsername) : null;
+
+  const task = {
+    id: outboundId,
+    instruction,
+    targetName: targetName || '对方',
+    targetUsername: targetUsername || null,
+    targetUserId,
+    ownerUserId: req.userId,
+    ownerName: profile.identity.nickname || profile.identity.name || '',
+    roomId,
+    status: 'pending',
+    callLink: `${SERVER_BASE}/outbound.html?id=${outboundId}`,
+    taskId: null,
+    summary: null,
+    createdAt: Date.now(),
+  };
+
+  outboundTasks.set(outboundId, task);
+
+  // 对方是注册用户 → 推送通知
+  if (targetUserId) {
+    const callerName = profile.identity.nickname || req.username || '知音用户';
+    if (!pendingNotifications.has(targetUserId)) pendingNotifications.set(targetUserId, []);
+    pendingNotifications.get(targetUserId).push({
+      type: 'incoming_call', outboundId, roomId, callerName,
+      message: `${callerName}有事要跟你说`, timestamp: Date.now(),
+    });
+    pushIncomingCall(targetUserId, { callerName, roomId, outboundId, message: `${callerName}有事要跟你说` })
+      .catch(err => console.error('[Push Error]', err.message));
+  }
+
+  return { task, targetUserId };
+}
 
 // =============================================
 // 公开 API（无需登录）
@@ -268,8 +358,8 @@ app.get('/api/profile', authMiddleware, (req, res) => {
 });
 
 app.put('/api/profile', authMiddleware, (req, res) => {
-  const profile = getUserProfile(req.userId);
-  Object.assign(profile, req.body);
+  const profile = safeGetProfile(req.userId);
+  deepMergeProfile(profile, req.body);
   saveUserProfile(req.userId, profile);
   res.json({ success: true, profile });
 });
@@ -479,7 +569,15 @@ app.delete('/api/shaping/:index', authMiddleware, (req, res) => {
   res.json({ success: true, shaping: profile.shaping });
 });
 
-// --- 来电通知（机主轮询）---
+// --- 统一轮询接口（前端每3s只请求一次，减少带宽）---
+app.get('/api/poll', authMiddleware, (req, res) => {
+  const notifications = pendingNotifications.get(req.userId) || [];
+  pendingNotifications.set(req.userId, []);
+  const friends = getFriends(req.userId);
+  res.json({ notifications, friends });
+});
+
+// --- 来电通知（兼容旧版，保留）---
 app.get('/api/notifications', authMiddleware, (req, res) => {
   const notifications = pendingNotifications.get(req.userId) || [];
   pendingNotifications.set(req.userId, []);
@@ -490,54 +588,8 @@ app.get('/api/notifications', authMiddleware, (req, res) => {
 app.post('/api/outbound/create', authMiddleware, (req, res) => {
   const { instruction, targetName, targetUsername } = req.body;
   if (!instruction) return res.status(400).json({ error: 'instruction required' });
-
-  const profile = getUserProfile(req.userId);
-  const roomId = Math.floor(10000 + Math.random() * 90000);
-  const outboundId = 'ob_' + Date.now();
-  const SERVER_BASE = process.env.SERVER_BASE_URL || `https://${req.headers.host}`;
-  const callLink = `${SERVER_BASE}/outbound.html?id=${outboundId}`;
-
-  // 如果对方也是注册用户，查找他的 userId
-  const targetUserId = targetUsername ? findUserByUsername(targetUsername) : null;
-
-  outboundTasks.set(outboundId, {
-    id: outboundId,
-    instruction,
-    targetName: targetName || '对方',
-    targetUsername: targetUsername || null,
-    targetUserId,
-    ownerUserId: req.userId,
-    ownerName: profile.identity.nickname || profile.identity.name || '',
-    roomId,
-    status: 'pending',
-    callLink,
-    taskId: null,
-    summary: null,
-    createdAt: Date.now(),
-  });
-
-  // 如果对方是注册用户 → 推送来电弹窗 + Web Push
-  if (targetUserId) {
-    if (!pendingNotifications.has(targetUserId)) pendingNotifications.set(targetUserId, []);
-    pendingNotifications.get(targetUserId).push({
-      type: 'incoming_call',
-      outboundId,
-      roomId,
-      callerName: profile.identity.nickname || '知音用户',
-      message: `${profile.identity.nickname || '有人'}有事要跟你说`,
-      timestamp: Date.now(),
-    });
-
-    // Web Push 系统通知（即使 App 没打开也能收到）
-    pushIncomingCall(targetUserId, {
-      callerName: profile.identity.nickname || '知音用户',
-      roomId,
-      outboundId,
-      message: `${profile.identity.nickname || '有人'}有事要跟你说`,
-    }).catch(err => console.error('[Push Error]', err.message));
-  }
-
-  res.json({ success: true, outboundId, callLink, roomId, targetIsRegistered: !!targetUserId });
+  const { task, targetUserId } = createOutboundTask({ req, instruction, targetName, targetUsername });
+  res.json({ success: true, outboundId: task.id, callLink: task.callLink, roomId: task.roomId, targetIsRegistered: !!targetUserId });
 });
 
 app.get('/api/outbound', authMiddleware, (req, res) => {
@@ -583,8 +635,8 @@ app.get('/api/users/search', authMiddleware, (req, res) => {
   res.json(results);
 });
 
-// --- 音色试听（通过 TRTC 内置 TTS 生成预览） ---
-app.get('/api/voice/preview/:voiceId', async (req, res) => {
+// --- 音色试听 ---
+app.get('/api/voice/preview/:voiceId', (req, res) => {
   const { voiceId } = req.params;
   const audioDir = join(__dirname, '../web/audio');
   const fileMap = {
@@ -595,16 +647,11 @@ app.get('/api/voice/preview/:voiceId', async (req, res) => {
   };
   const filename = fileMap[voiceId];
   if (!filename) return res.status(404).json({ error: 'Voice not found' });
-  
   const filePath = join(audioDir, filename);
-  // 如果文件存在且大于100字节（非占位），直接返回
-  const { existsSync, statSync } = await import('fs');
   if (existsSync(filePath) && statSync(filePath).size > 100) {
     return res.sendFile(filePath);
   }
-  
-  // 否则返回提示（实际需要从 TTS 控制台生成音频文件）
-  res.status(503).json({ error: '试听音频准备中，请稍后再试' });
+  res.status(503).json({ error: '试听音频准备中' });
 });
 
 // --- 好友备注 ---
@@ -616,54 +663,18 @@ app.put('/api/friends/:userId/remark', authMiddleware, (req, res) => {
 });
 
 // --- 按知音号拨出（不需要加好友）---
-app.post('/api/call/dial', authMiddleware, async (req, res) => {
+app.post('/api/call/dial', authMiddleware, (req, res) => {
   const { zhiyinId, instruction } = req.body;
   if (!zhiyinId) return res.status(400).json({ error: '请输入知音号' });
   if (!instruction) return res.status(400).json({ error: '请说明要说什么事' });
-
   const target = findUserByZhiyinId(zhiyinId);
-  const profile = getUserProfile(req.userId);
-  const roomId = Math.floor(10000 + Math.random() * 90000);
-  const outboundId = 'ob_' + Date.now();
-  const SERVER_BASE = process.env.SERVER_BASE_URL || `https://${req.headers.host}`;
-
-  outboundTasks.set(outboundId, {
-    id: outboundId,
-    instruction,
-    targetName: target ? target.nickname : zhiyinId,
-    targetUsername: zhiyinId,
-    targetUserId: target ? target.userId : null,
-    ownerUserId: req.userId,
-    ownerName: profile.identity.nickname || profile.identity.name || '',
-    roomId,
-    status: 'pending',
-    callLink: `${SERVER_BASE}/outbound.html?id=${outboundId}`,
-    taskId: null,
-    summary: null,
-    createdAt: Date.now(),
+  const { task, targetUserId } = createOutboundTask({
+    req, instruction, targetName: target ? target.nickname : zhiyinId, targetUsername: zhiyinId,
   });
-
-  // 对方是注册用户 → Push 通知
-  if (target) {
-    if (!pendingNotifications.has(target.userId)) pendingNotifications.set(target.userId, []);
-    pendingNotifications.get(target.userId).push({
-      type: 'incoming_call',
-      outboundId, roomId,
-      callerName: profile.identity.nickname || req.username,
-      message: `${profile.identity.nickname || '有人'}有事要跟你说`,
-      timestamp: Date.now(),
-    });
-    pushIncomingCall(target.userId, {
-      callerName: profile.identity.nickname || req.username,
-      roomId, outboundId,
-      message: `${profile.identity.nickname || '有人'}有事要跟你说`,
-    }).catch(err => console.error('[Push Error]', err.message));
-  }
-
   res.json({
-    success: true, outboundId, roomId,
-    targetExists: !!target,
-    callLink: target ? null : `${SERVER_BASE}/outbound.html?id=${outboundId}`,
+    success: true, outboundId: task.id, roomId: task.roomId,
+    targetExists: !!targetUserId,
+    callLink: targetUserId ? null : task.callLink,
   });
 });
 

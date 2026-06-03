@@ -1350,7 +1350,7 @@ function renderCalls(calls) {
   }).join('');
 }
 
-// ===== Polling =====
+// ===== Polling (单请求轮询，减少带宽) =====
 let lastFriendsHash = '';
 
 function startPolling() {
@@ -1359,34 +1359,27 @@ function startPolling() {
 }
 
 async function pollCycle() {
-  pollNotifications();
-  // 每次轮询也刷新好友列表（检测对方添加你）
-  refreshFriendsIfChanged();
-}
-
-async function refreshFriendsIfChanged() {
   try {
-    const res = await fetch('/api/friends', { headers: getHeaders() });
-    if (!res.ok) return;
-    const friends = await res.json();
-    const hash = JSON.stringify(friends.map(f => f.userId).sort());
-    if (hash !== lastFriendsHash) {
-      lastFriendsHash = hash;
-      renderFriends(friends);
-    }
-  } catch(e) {}
-}
-
-async function pollNotifications() {
-  try {
-    const res = await fetch('/api/notifications', { headers: getHeaders() });
+    const res = await fetch('/api/poll', { headers: getHeaders() });
+    if (res.status === 401) { doLogout(); return; } // token过期自动登出
     if (!res.ok) return;
     const data = await res.json();
-    if (Array.isArray(data) && data.length > 0) {
-      const notif = data[0];
+
+    // 处理通知
+    if (data.notifications?.length > 0) {
+      const notif = data.notifications[0];
       if (notif.type === 'transfer' || notif.type === 'incoming_call') {
         currentNotification = notif;
         showCallModal(notif);
+      }
+    }
+
+    // 好友列表变更检测（hash对比，变了才重渲染）
+    if (data.friends) {
+      const hash = JSON.stringify(data.friends.map(f => f.userId).sort());
+      if (hash !== lastFriendsHash) {
+        lastFriendsHash = hash;
+        renderFriends(data.friends);
       }
     }
   } catch(e) {}
