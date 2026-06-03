@@ -35,6 +35,17 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
+
+// sw.js 和 HTML 不缓存（确保用户总是拿到最新版）
+app.use((req, res, next) => {
+  if (req.path === '/sw.js' || req.path.endsWith('.html') || req.path === '/') {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+  }
+  next();
+});
+
 app.use(express.static(join(__dirname, '../web')));
 
 // 存储活跃的 AI 对话任务

@@ -1332,9 +1332,30 @@ function esc(s) {
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-// ===== Service Worker =====
+// ===== Service Worker + 自动更新 =====
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/sw.js').catch(() => {});
+  navigator.serviceWorker.register('/sw.js').then(reg => {
+    // 每 30 秒检查一次是否有新版本
+    setInterval(() => reg.update(), 30000);
+
+    // 监听新 SW 安装完成
+    reg.addEventListener('updatefound', () => {
+      const newWorker = reg.installing;
+      newWorker.addEventListener('statechange', () => {
+        if (newWorker.state === 'activated') {
+          // 新版本已激活，自动刷新页面
+          window.location.reload();
+        }
+      });
+    });
+  }).catch(() => {});
+
+  // 监听 SW 发来的更新消息
+  navigator.serviceWorker.addEventListener('message', (e) => {
+    if (e.data?.type === 'SW_UPDATED') {
+      window.location.reload();
+    }
+  });
 }
 </script>
 </body>

@@ -1,25 +1,62 @@
-const CACHE_NAME = 'nous-v3';
-const ASSETS = ['/', '/index.html', '/TRTC.js', '/manifest.json'];
+const CACHE_NAME = 'nous-v4';
+const ASSETS = ['/TRTC.js', '/manifest.json'];
+// 注意：不缓存 index.html — 它走 network first
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(ASSETS)));
-  self.skipWaiting();
+  self.skipWaiting(); // 新 SW 立即接管
 });
 
 self.addEventListener('activate', (e) => {
-  e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))));
-  self.clients.claim();
+  // 清除所有旧版本缓存
+  e.waitUntil(
+    caches.keys().then(keys => Promise.all(
+      keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))
+    )).then(() => self.clients.claim()) // 立即控制所有页面
+  );
+
+  // 通知所有客户端刷新
+  self.clients.matchAll().then(clients => {
+    clients.forEach(client => client.postMessage({ type: 'SW_UPDATED' }));
+  });
 });
 
 self.addEventListener('fetch', (e) => {
-  // Network first for API, cache first for assets
-  if (e.request.url.includes('/api/')) return;
+  const url = new URL(e.request.url);
+
+  // API 请求：直接走网络，不缓存
+  if (url.pathname.startsWith('/api/')) return;
+
+  // HTML 页面：Network First（确保总是最新版）
+  if (e.request.mode === 'navigate' || url.pathname.endsWith('.html') || url.pathname === '/') {
+    e.respondWith(
+      fetch(e.request).then(res => {
+        // 成功拿到网络版本 → 更新缓存 + 返回
+        const clone = res.clone();
+        caches.open(CACHE_NAME).then(c => c.put(e.request, clone));
+        return res;
+      }).catch(() => {
+        // 网络失败 → 用缓存兜底（离线模式）
+        return caches.match(e.request);
+      })
+    );
+    return;
+  }
+
+  // 静态资源（JS/CSS/图片）：Cache First + 后台更新
   e.respondWith(
-    caches.match(e.request).then(r => r || fetch(e.request).then(res => {
-      const clone = res.clone();
-      caches.open(CACHE_NAME).then(c => c.put(e.request, clone));
-      return res;
-    }))
+    caches.match(e.request).then(cached => {
+      // 后台发起网络请求更新缓存（stale-while-revalidate）
+      const fetchPromise = fetch(e.request).then(res => {
+        if (res.ok) {
+          const clone = res.clone();
+          caches.open(CACHE_NAME).then(c => c.put(e.request, clone));
+        }
+        return res;
+      }).catch(() => cached);
+
+      return cached || fetchPromise;
+    })
   );
 });
 
@@ -27,17 +64,17 @@ self.addEventListener('fetch', (e) => {
 
 self.addEventListener('push', (e) => {
   const data = e.data?.json() || {};
-  
+
   const options = {
     body: data.body || '有人通过知音联系你',
     icon: '/icons/icon-192.png',
     badge: '/icons/icon-192.png',
-    vibrate: [200, 100, 200, 100, 200], // 来电震动模式
-    tag: data.type || 'zhiyin-notification', // 同类通知合并
-    renotify: true, // 即使 tag 相同也重新提醒
-    requireInteraction: true, // 不自动消失，等用户操作
+    vibrate: [200, 100, 200, 100, 200],
+    tag: data.type || 'zhiyin-notification',
+    renotify: true,
+    requireInteraction: true,
     data: data.data || {},
-    actions: data.type === 'incoming_call' 
+    actions: data.type === 'incoming_call'
       ? [{ action: 'answer', title: '接听' }, { action: 'decline', title: '拒绝' }]
       : [{ action: 'open', title: '查看' }],
   };
@@ -49,31 +86,26 @@ self.addEventListener('push', (e) => {
 
 self.addEventListener('notificationclick', (e) => {
   e.notification.close();
-  
+
   const data = e.notification.data || {};
   let targetUrl = '/index.html';
-  
+
   if (e.action === 'answer' || e.action === 'open') {
-    // 点击"接听"或"查看" → 打开对应页面
     targetUrl = data.url || '/index.html';
   } else if (e.action === 'decline') {
-    // 点击"拒绝" → 不做任何事
     return;
   } else {
-    // 点击通知本体 → 打开对应页面
     targetUrl = data.url || '/index.html';
   }
 
   e.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(windowClients => {
-      // 如果已有窗口打开，聚焦并导航
       for (const client of windowClients) {
         if (client.url.includes(self.location.origin)) {
           client.navigate(self.location.origin + targetUrl);
           return client.focus();
         }
       }
-      // 否则打开新窗口
       return clients.openWindow(targetUrl);
     })
   );
