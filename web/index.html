@@ -1001,19 +1001,74 @@ function selectVoice(card) {
 
 function triggerPWAInstall() {
   if (deferredInstallPrompt) {
+    // Android Chrome / 桌面 Chrome — 直接弹系统安装框
     deferredInstallPrompt.prompt();
     deferredInstallPrompt.userChoice.then(result => {
       if (result.outcome === 'accepted') { showToast('安装成功！'); }
       deferredInstallPrompt = null;
     });
   } else {
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    if (isIOS) {
-      showToast('点击底部分享按钮 → "添加到主屏幕"');
-    } else {
-      showToast('点击浏览器菜单 → "安装应用"');
-    }
+    // iOS 或不支持的浏览器 — 显示引导弹窗
+    showInstallGuide();
   }
+}
+
+function showInstallGuide() {
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  const isAndroid = /Android/.test(navigator.userAgent);
+  
+  let steps = '';
+  if (isIOS) {
+    steps = `
+      <div style="text-align:left;margin-top:20px">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+          <div style="width:28px;height:28px;border-radius:50%;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;flex-shrink:0">1</div>
+          <span style="font-size:14px;color:#ebebf5cc">点击底部 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0a84ff" stroke-width="2" style="vertical-align:middle"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg> 分享按钮</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+          <div style="width:28px;height:28px;border-radius:50%;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;flex-shrink:0">2</div>
+          <span style="font-size:14px;color:#ebebf5cc">选择「添加到主屏幕」</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px">
+          <div style="width:28px;height:28px;border-radius:50%;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;flex-shrink:0">3</div>
+          <span style="font-size:14px;color:#ebebf5cc">点右上角「添加」</span>
+        </div>
+      </div>`;
+  } else if (isAndroid) {
+    steps = `
+      <div style="text-align:left;margin-top:20px">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+          <div style="width:28px;height:28px;border-radius:50%;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;flex-shrink:0">1</div>
+          <span style="font-size:14px;color:#ebebf5cc">点击右上角 ⋮ 菜单</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px">
+          <div style="width:28px;height:28px;border-radius:50%;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;flex-shrink:0">2</div>
+          <span style="font-size:14px;color:#ebebf5cc">选择「安装应用」或「添加到主屏幕」</span>
+        </div>
+      </div>`;
+  } else {
+    steps = `
+      <div style="text-align:left;margin-top:20px">
+        <div style="display:flex;align-items:center;gap:12px">
+          <div style="width:28px;height:28px;border-radius:50%;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;flex-shrink:0">1</div>
+          <span style="font-size:14px;color:#ebebf5cc">点击地址栏右侧的安装图标，或菜单中的「安装应用」</span>
+        </div>
+      </div>`;
+  }
+
+  // 创建引导弹窗
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;padding:24px;backdrop-filter:blur(10px)';
+  overlay.innerHTML = `
+    <div style="background:#1c1c1e;border-radius:16px;padding:24px;max-width:340px;width:100%;text-align:center">
+      <div style="font-size:40px;margin-bottom:12px">📲</div>
+      <div style="font-size:18px;font-weight:600;margin-bottom:6px;color:#fff">安装知音到${isIOS ? '主屏幕' : '桌面'}</div>
+      <div style="font-size:13px;color:#8e8e93">安装后来电会弹通知，像接电话一样</div>
+      ${steps}
+      <button onclick="this.closest('div[style]').parentElement.remove()" style="margin-top:24px;width:100%;height:44px;border-radius:10px;border:none;background:var(--blue);color:#fff;font-size:15px;font-weight:600;cursor:pointer">我知道了</button>
+    </div>
+  `;
+  document.body.appendChild(overlay);
 }
 
 function skipOnboarding() { finishOnboarding(); }
