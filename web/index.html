@@ -1295,6 +1295,8 @@ function switchTab(el) {
   document.querySelectorAll(`.sidebar-item[data-tab="${tab}"]`).forEach(t => t.classList.add('active'));
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
   document.getElementById(tab).classList.add('active');
+  // 切到拨出tab时刷新通讯录
+  if (tab === 'panelDial') loadFriends();
 }
 
 // ===== Settings =====
@@ -1477,6 +1479,9 @@ async function doAddFriend() {
     if (data.error) {
       if (data.error === '用户不存在') {
         document.getElementById('searchFriendResult').innerHTML = 'TA还没有知音，<span style="color:var(--blue);cursor:pointer" onclick="inviteFriend()">邀请TA</span>';
+      } else if (data.error === '已经是好友了') {
+        document.getElementById('searchFriendResult').textContent = '已经是好友了';
+        loadFriends(); // 刷新列表确保显示
       } else {
         document.getElementById('searchFriendResult').textContent = data.error;
       }
