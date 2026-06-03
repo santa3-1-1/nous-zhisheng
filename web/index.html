@@ -558,6 +558,14 @@
 
 <script src="/TRTC.js"></script>
 <script>
+// ===== PWA Install Prompt (必须最早注册) =====
+let deferredInstallPrompt = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  console.log('[PWA] Install prompt captured');
+});
+
 // ===== State =====
 let currentTab = 'panelHome';
 let obStep = 0;
@@ -689,13 +697,7 @@ function nextOnboarding() {
   }
 }
 
-// PWA 安装逻辑
-let deferredInstallPrompt = null;
-window.addEventListener('beforeinstallprompt', (e) => {
-  e.preventDefault();
-  deferredInstallPrompt = e;
-});
-
+// PWA 安装逻辑（监听器已在脚本顶部注册）
 function triggerPWAInstall() {
   if (deferredInstallPrompt) {
     deferredInstallPrompt.prompt();
