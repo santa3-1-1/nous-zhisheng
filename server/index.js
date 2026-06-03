@@ -583,6 +583,30 @@ app.get('/api/users/search', authMiddleware, (req, res) => {
   res.json(results);
 });
 
+// --- 音色试听（通过 TRTC 内置 TTS 生成预览） ---
+app.get('/api/voice/preview/:voiceId', async (req, res) => {
+  const { voiceId } = req.params;
+  const audioDir = join(__dirname, '../web/audio');
+  const fileMap = {
+    'v-male-W1tH9jVc': 'voice-male-natural.mp3',
+    'v-female-qingxin': 'voice-female-fresh.mp3',
+    'v-male-chenshu': 'voice-male-steady.mp3',
+    'v-female-wenrou': 'voice-female-gentle.mp3',
+  };
+  const filename = fileMap[voiceId];
+  if (!filename) return res.status(404).json({ error: 'Voice not found' });
+  
+  const filePath = join(audioDir, filename);
+  // 如果文件存在且大于100字节（非占位），直接返回
+  const { existsSync, statSync } = await import('fs');
+  if (existsSync(filePath) && statSync(filePath).size > 100) {
+    return res.sendFile(filePath);
+  }
+  
+  // 否则返回提示（实际需要从 TTS 控制台生成音频文件）
+  res.status(503).json({ error: '试听音频准备中，请稍后再试' });
+});
+
 // --- 好友备注 ---
 app.put('/api/friends/:userId/remark', authMiddleware, (req, res) => {
   const { remark } = req.body;

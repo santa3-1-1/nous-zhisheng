@@ -570,22 +570,22 @@
           <div class="ob-voice-card selected" data-voice="v-male-W1tH9jVc" onclick="selectVoice(this)">
             <input type="radio" name="obVoice" value="v-male-W1tH9jVc" checked style="accent-color:var(--blue)">
             <div class="voice-info"><div class="voice-name">自然男声</div><div class="voice-desc">温暖平和，适合日常沟通</div></div>
-            <button class="voice-preview" onclick="event.stopPropagation();showToast('试听功能开发中')">试听</button>
+            <button class="voice-preview" onclick="event.stopPropagation();previewVoice('v-male-W1tH9jVc')">试听</button>
           </div>
           <div class="ob-voice-card" data-voice="v-female-qingxin" onclick="selectVoice(this)">
             <input type="radio" name="obVoice" value="v-female-qingxin" style="accent-color:var(--blue)">
             <div class="voice-info"><div class="voice-name">清新女声</div><div class="voice-desc">清脆明亮，轻松亲切</div></div>
-            <button class="voice-preview" onclick="event.stopPropagation();showToast('试听功能开发中')">试听</button>
+            <button class="voice-preview" onclick="event.stopPropagation();previewVoice('v-female-qingxin')">试听</button>
           </div>
           <div class="ob-voice-card" data-voice="v-male-chenshu" onclick="selectVoice(this)">
             <input type="radio" name="obVoice" value="v-male-chenshu" style="accent-color:var(--blue)">
             <div class="voice-info"><div class="voice-name">沉稳男声</div><div class="voice-desc">低沉有力，沉着可靠</div></div>
-            <button class="voice-preview" onclick="event.stopPropagation();showToast('试听功能开发中')">试听</button>
+            <button class="voice-preview" onclick="event.stopPropagation();previewVoice('v-male-chenshu')">试听</button>
           </div>
           <div class="ob-voice-card" data-voice="v-female-wenrou" onclick="selectVoice(this)">
             <input type="radio" name="obVoice" value="v-female-wenrou" style="accent-color:var(--blue)">
             <div class="voice-info"><div class="voice-name">温柔女声</div><div class="voice-desc">柔和细腻，温暖人心</div></div>
-            <button class="voice-preview" onclick="event.stopPropagation();showToast('试听功能开发中')">试听</button>
+            <button class="voice-preview" onclick="event.stopPropagation();previewVoice('v-female-wenrou')">试听</button>
           </div>
         </div>
       </div>
@@ -999,6 +999,28 @@ function selectVoice(card) {
   card.querySelector('input[type="radio"]').checked = true;
 }
 
+let previewAudio = null;
+function previewVoice(voiceId) {
+  // 停止正在播放的
+  if (previewAudio) { previewAudio.pause(); previewAudio = null; }
+  
+  const audioMap = {
+    'v-male-W1tH9jVc': '/audio/voice-male-natural.mp3',
+    'v-female-qingxin': '/audio/voice-female-fresh.mp3',
+    'v-male-chenshu': '/audio/voice-male-steady.mp3',
+    'v-female-wenrou': '/audio/voice-female-gentle.mp3',
+  };
+  
+  const src = audioMap[voiceId];
+  if (!src) return;
+  
+  previewAudio = new Audio(src);
+  previewAudio.play().catch(() => {
+    // 音频文件不可用时 fallback
+    showToast('试听音频准备中');
+  });
+}
+
 function triggerPWAInstall() {
   const ua = navigator.userAgent;
   const isAndroid = /Android/i.test(ua);
@@ -1138,8 +1160,8 @@ function showFirstConvo() {
   firstConvoCount = 0;
   const name = profile.nickname || localStorage.getItem('zs_username') || '';
   const greeting = name
-    ? `你好${name}，我是你的知音。以后有电话打来我替你接——先告诉我，平时什么电话你会接，什么电话不想接？`
-    : '你好，我是你的知音。以后有电话打来我替你接——先告诉我，平时什么电话你会接，什么电话不想接？';
+    ? `你好${name}，我是你的知音。从现在起我会像你一样接听电话、处理事情。不过每个人习惯不同——先跟我聊聊，你平时接电话有什么讲究吗？`
+    : '你好，我是你的知音。从现在起我会像你一样接听电话、处理事情。不过每个人习惯不同——先跟我聊聊，你平时接电话有什么讲究吗？';
   setTimeout(() => addFcMessage(greeting, 'bot'), 500);
 }
 
