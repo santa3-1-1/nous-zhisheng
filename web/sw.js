@@ -1,4 +1,4 @@
-const CACHE_NAME = 'nous-v2';
+const CACHE_NAME = 'nous-v3';
 const ASSETS = ['/', '/index.html', '/TRTC.js', '/manifest.json'];
 
 self.addEventListener('install', (e) => {
@@ -23,22 +23,58 @@ self.addEventListener('fetch', (e) => {
   );
 });
 
-// Push notification handler
+// ===== Web Push 处理 =====
+
 self.addEventListener('push', (e) => {
   const data = e.data?.json() || {};
+  
+  const options = {
+    body: data.body || '有人通过知音联系你',
+    icon: '/icons/icon-192.png',
+    badge: '/icons/icon-192.png',
+    vibrate: [200, 100, 200, 100, 200], // 来电震动模式
+    tag: data.type || 'zhiyin-notification', // 同类通知合并
+    renotify: true, // 即使 tag 相同也重新提醒
+    requireInteraction: true, // 不自动消失，等用户操作
+    data: data.data || {},
+    actions: data.type === 'incoming_call' 
+      ? [{ action: 'answer', title: '接听' }, { action: 'decline', title: '拒绝' }]
+      : [{ action: 'open', title: '查看' }],
+  };
+
   e.waitUntil(
-    self.registration.showNotification(data.title || '知音来电', {
-      body: data.body || '有人给你打电话',
-      icon: '/icons/icon-192.png',
-      badge: '/icons/icon-192.png',
-      data: data,
-      actions: [{ action: 'join', title: '接入通话' }],
-    })
+    self.registration.showNotification(data.title || '知音', options)
   );
 });
 
 self.addEventListener('notificationclick', (e) => {
   e.notification.close();
-  const url = e.notification.data?.joinUrl || '/index.html#calls';
-  e.waitUntil(clients.openWindow(url));
+  
+  const data = e.notification.data || {};
+  let targetUrl = '/index.html';
+  
+  if (e.action === 'answer' || e.action === 'open') {
+    // 点击"接听"或"查看" → 打开对应页面
+    targetUrl = data.url || '/index.html';
+  } else if (e.action === 'decline') {
+    // 点击"拒绝" → 不做任何事
+    return;
+  } else {
+    // 点击通知本体 → 打开对应页面
+    targetUrl = data.url || '/index.html';
+  }
+
+  e.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(windowClients => {
+      // 如果已有窗口打开，聚焦并导航
+      for (const client of windowClients) {
+        if (client.url.includes(self.location.origin)) {
+          client.navigate(self.location.origin + targetUrl);
+          return client.focus();
+        }
+      }
+      // 否则打开新窗口
+      return clients.openWindow(targetUrl);
+    })
+  );
 });

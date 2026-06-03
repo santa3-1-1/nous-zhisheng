@@ -18,6 +18,7 @@
     "openai": "^4.60.0",
     "tencentcloud-sdk-nodejs-trtc": "^4.0.0",
     "tls-sig-api-v2": "^1.0.0",
-    "trtc-sdk-v5": "^5.17.1"
+    "trtc-sdk-v5": "^5.17.1",
+    "web-push": "^3.6.0"
   }
 }

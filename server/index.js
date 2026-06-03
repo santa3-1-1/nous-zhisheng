@@ -26,6 +26,7 @@ import {
   getUserKnowledge, saveUserKnowledge,
   findUserByUsername, getAllUsers
 } from './auth/users.js';
+import { getVapidPublicKey, saveSubscription, pushIncomingCall, pushTransferNotify } from './push/web-push.js';
 import OpenAI from 'openai';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -62,6 +63,18 @@ app.post('/api/auth/login', (req, res) => {
   const result = login(username, password);
   if (result.error) return res.status(400).json(result);
   res.json(result);
+});
+
+// --- Web Push 订阅 ---
+app.get('/api/push/vapid-key', (req, res) => {
+  res.json({ publicKey: getVapidPublicKey() });
+});
+
+app.post('/api/push/subscribe', authMiddleware, (req, res) => {
+  const { subscription } = req.body;
+  if (!subscription) return res.status(400).json({ error: 'subscription required' });
+  saveSubscription(req.userId, subscription);
+  res.json({ success: true });
 });
 
 // --- TRTC 鉴权（来电方也需要，所以公开）---
@@ -357,7 +370,7 @@ app.post('/api/transfer', async (req, res) => {
 
     await sendTransferNotify({ summary, urgency: urgency || 7, callerInfo: callerInfo || '未知来电', roomId, taskId });
 
-    // 推到对应用户的通知队列
+    // 推到对应用户的通知队列 + Web Push
     if (ownerUserId) {
       if (!pendingNotifications.has(ownerUserId)) pendingNotifications.set(ownerUserId, []);
       pendingNotifications.get(ownerUserId).push({
@@ -365,6 +378,10 @@ app.post('/api/transfer', async (req, res) => {
         urgency: urgency || 7, callerInfo: callerInfo || '未知来电',
         timestamp: Date.now(),
       });
+
+      // Web Push 通知机主
+      pushTransferNotify(ownerUserId, { summary, roomId, taskId })
+        .catch(err => console.error('[Push Transfer Error]', err.message));
     }
 
     if (session) {
@@ -486,7 +503,7 @@ app.post('/api/outbound/create', authMiddleware, (req, res) => {
     createdAt: Date.now(),
   });
 
-  // 如果对方是注册用户 → 推送来电弹窗
+  // 如果对方是注册用户 → 推送来电弹窗 + Web Push
   if (targetUserId) {
     if (!pendingNotifications.has(targetUserId)) pendingNotifications.set(targetUserId, []);
     pendingNotifications.get(targetUserId).push({
@@ -497,6 +514,14 @@ app.post('/api/outbound/create', authMiddleware, (req, res) => {
       message: `${profile.identity.nickname || '有人'}有事要跟你说`,
       timestamp: Date.now(),
     });
+
+    // Web Push 系统通知（即使 App 没打开也能收到）
+    pushIncomingCall(targetUserId, {
+      callerName: profile.identity.nickname || '知音用户',
+      roomId,
+      outboundId,
+      message: `${profile.identity.nickname || '有人'}有事要跟你说`,
+    }).catch(err => console.error('[Push Error]', err.message));
   }
 
   res.json({ success: true, outboundId, callLink, roomId, targetIsRegistered: !!targetUserId });

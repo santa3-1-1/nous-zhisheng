@@ -625,6 +625,65 @@ function showMainApp() {
   loadShaping();
   loadKnowledge();
   startPolling();
+  subscribePush(); // 自动订阅推送
+}
+
+// ===== Web Push 订阅 =====
+async function subscribePush() {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    console.log('[Push] 浏览器不支持 Web Push');
+    return;
+  }
+
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    
+    // 检查是否已订阅
+    let subscription = await reg.pushManager.getSubscription();
+    if (subscription) {
+      console.log('[Push] 已有订阅');
+      return;
+    }
+
+    // 请求通知权限
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') {
+      console.log('[Push] 用户拒绝了通知权限');
+      return;
+    }
+
+    // 获取 VAPID key
+    const vapidRes = await fetch('/api/push/vapid-key');
+    const { publicKey } = await vapidRes.json();
+
+    // 订阅
+    subscription = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(publicKey),
+    });
+
+    // 发送订阅信息到后端
+    await fetch('/api/push/subscribe', {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ subscription }),
+    });
+
+    console.log('[Push] 订阅成功');
+  } catch (err) {
+    console.error('[Push] 订阅失败:', err);
+  }
+}
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
 }
 
 // ===== Tab Switch =====
