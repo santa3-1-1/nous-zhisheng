@@ -218,3 +218,79 @@ export function getAllUsers() {
     userId: data.userId,
   }));
 }
+
+/**
+ * 搜索用户（模糊匹配用户名）
+ */
+export function searchUsers(query, excludeUserId) {
+  const q = query.toLowerCase();
+  return Object.entries(usersIndex)
+    .filter(([username, data]) => username.toLowerCase().includes(q) && data.userId !== excludeUserId)
+    .slice(0, 10)
+    .map(([username, data]) => {
+      const profile = getUserProfile(data.userId);
+      return {
+        username,
+        userId: data.userId,
+        nickname: profile.identity?.nickname || username,
+      };
+    });
+}
+
+// =============================================
+// 通讯录（好友系统）
+// =============================================
+
+function getFriendsFile(userId) {
+  return join(getUserDir(userId), 'friends.json');
+}
+
+/**
+ * 获取用户好友列表
+ */
+export function getFriends(userId) {
+  const file = getFriendsFile(userId);
+  if (existsSync(file)) {
+    try { return JSON.parse(readFileSync(file, 'utf-8')); } catch {}
+  }
+  return [];
+}
+
+/**
+ * 添加好友（双向）
+ */
+export function addFriend(userId, friendUserId, friendUsername, friendNickname) {
+  // 添加到自己的列表
+  const myFriends = getFriends(userId);
+  if (myFriends.find(f => f.userId === friendUserId)) return { error: '已经是好友了' };
+  myFriends.push({ userId: friendUserId, username: friendUsername, nickname: friendNickname || friendUsername, addedAt: new Date().toISOString() });
+  writeFileSync(getFriendsFile(userId), JSON.stringify(myFriends, null, 2));
+
+  // 添加到对方的列表
+  const myUsername = Object.entries(usersIndex).find(([_, d]) => d.userId === userId)?.[0] || '';
+  const myProfile = getUserProfile(userId);
+  const theirFriends = getFriends(friendUserId);
+  if (!theirFriends.find(f => f.userId === userId)) {
+    theirFriends.push({ userId, username: myUsername, nickname: myProfile.identity?.nickname || myUsername, addedAt: new Date().toISOString() });
+    writeFileSync(getFriendsFile(friendUserId), JSON.stringify(theirFriends, null, 2));
+  }
+
+  return { success: true };
+}
+
+/**
+ * 删除好友（双向）
+ */
+export function removeFriend(userId, friendUserId) {
+  // 从自己列表移除
+  let myFriends = getFriends(userId);
+  myFriends = myFriends.filter(f => f.userId !== friendUserId);
+  writeFileSync(getFriendsFile(userId), JSON.stringify(myFriends, null, 2));
+
+  // 从对方列表移除
+  let theirFriends = getFriends(friendUserId);
+  theirFriends = theirFriends.filter(f => f.userId !== userId);
+  writeFileSync(getFriendsFile(friendUserId), JSON.stringify(theirFriends, null, 2));
+
+  return { success: true };
+}

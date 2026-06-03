@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0a0a0a">
+  <title>知音 — 另一个懂你的自己</title>
+  <style>
+    :root { --bg:#0a0a0a; --card:#1c1c1e; --border:#2c2c2e; --blue:#0a84ff; --green:#30d158; --text:#fff; --text2:#ebebf5cc; --text3:#ebebf54d; }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:-apple-system,'SF Pro Display',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; display:flex; flex-direction:column; align-items:center; padding:60px 24px 40px; -webkit-font-smoothing:antialiased; }
+    .container { max-width:400px; width:100%; text-align:center; }
+    .logo { font-size:48px; margin-bottom:8px; }
+    .title { font-size:32px; font-weight:800; margin-bottom:8px; }
+    .subtitle { font-size:16px; color:var(--text2); margin-bottom:40px; }
+    .features { text-align:left; margin-bottom:40px; }
+    .feature { display:flex; align-items:flex-start; gap:12px; padding:16px 0; border-bottom:0.5px solid var(--border); }
+    .feature:last-child { border-bottom:none; }
+    .feature-icon { font-size:24px; flex-shrink:0; }
+    .feature-text h3 { font-size:16px; font-weight:600; margin-bottom:4px; }
+    .feature-text p { font-size:14px; color:var(--text2); line-height:1.4; }
+    .cta-btn {
+      width:100%; padding:16px; border:none; border-radius:14px;
+      background:var(--blue); color:#fff; font-size:17px; font-weight:600;
+      cursor:pointer; margin-bottom:12px;
+    }
+    .cta-btn:active { opacity:0.8; }
+    .from-text { font-size:13px; color:var(--text3); margin-top:24px; }
+    .powered { font-size:11px; color:var(--text3); margin-top:40px; opacity:0.5; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="logo">🎭</div>
+    <div class="title">知音</div>
+    <div class="subtitle">另一个懂你的自己</div>
+
+    <div class="features">
+      <div class="feature">
+        <div class="feature-icon">📞</div>
+        <div class="feature-text">
+          <h3>替你接打电话</h3>
+          <p>来电时知音以你的身份接听，搞不定再转给你</p>
+        </div>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">🧠</div>
+        <div class="feature-text">
+          <h3>越用越像你</h3>
+          <p>教知音你的习惯和偏好，它会用你的方式处理事情</p>
+        </div>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">🔔</div>
+        <div class="feature-text">
+          <h3>来电即时通知</h3>
+          <p>安装到桌面后，有来电像手机一样弹通知</p>
+        </div>
+      </div>
+    </div>
+
+    <button class="cta-btn" onclick="goRegister()">免费注册，开始使用</button>
+
+    <div class="from-text" id="fromText"></div>
+    <div class="powered">Powered by 知音 Nous</div>
+  </div>
+
+  <script>
+    const params = new URLSearchParams(location.search);
+    const from = params.get('from');
+    if (from) {
+      document.getElementById('fromText').textContent = `来自 ${from} 的邀请`;
+    }
+
+    function goRegister() {
+      const url = from ? `/index.html?invite=${from}` : '/index.html';
+      location.href = url;
+    }
+  </script>
+</body>
+</html>

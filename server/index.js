@@ -24,7 +24,8 @@ import {
   getUserProfile, saveUserProfile,
   getUserCalls, saveUserCalls,
   getUserKnowledge, saveUserKnowledge,
-  findUserByUsername, getAllUsers
+  findUserByUsername, getAllUsers,
+  searchUsers, getFriends, addFriend, removeFriend
 } from './auth/users.js';
 import { getVapidPublicKey, saveSubscription, pushIncomingCall, pushTransferNotify } from './push/web-push.js';
 import OpenAI from 'openai';
@@ -537,6 +538,44 @@ app.get('/api/outbound', authMiddleware, (req, res) => {
 // --- 用户信息 ---
 app.get('/api/me', authMiddleware, (req, res) => {
   res.json({ userId: req.userId, username: req.username });
+});
+
+// --- 通讯录（好友） ---
+app.get('/api/friends', authMiddleware, (req, res) => {
+  const friends = getFriends(req.userId);
+  res.json(friends);
+});
+
+app.post('/api/friends/add', authMiddleware, (req, res) => {
+  const { username } = req.body;
+  if (!username) return res.status(400).json({ error: '请输入对方用户名' });
+  const friendUserId = findUserByUsername(username);
+  if (!friendUserId) return res.status(404).json({ error: '用户不存在' });
+  if (friendUserId === req.userId) return res.status(400).json({ error: '不能添加自己' });
+
+  const friendProfile = getUserProfile(friendUserId);
+  const result = addFriend(req.userId, friendUserId, username, friendProfile.identity?.nickname || username);
+  if (result.error) return res.status(400).json(result);
+  res.json({ success: true, friend: { userId: friendUserId, username, nickname: friendProfile.identity?.nickname || username } });
+});
+
+app.delete('/api/friends/:userId', authMiddleware, (req, res) => {
+  const result = removeFriend(req.userId, req.params.userId);
+  res.json(result);
+});
+
+app.get('/api/users/search', authMiddleware, (req, res) => {
+  const q = req.query.q || '';
+  if (q.length < 1) return res.json([]);
+  const results = searchUsers(q, req.userId);
+  res.json(results);
+});
+
+// --- 邀请链接 ---
+app.get('/api/invite-link', authMiddleware, (req, res) => {
+  const SERVER_BASE = process.env.SERVER_BASE_URL || `http://localhost:${config.server.port}`;
+  const link = `${SERVER_BASE}/invite.html?from=${req.username}`;
+  res.json({ link });
 });
 
 // =============================================

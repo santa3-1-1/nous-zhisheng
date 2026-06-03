@@ -298,28 +298,61 @@
       <div class="ob-bar"><div class="fill"></div></div>
       <div class="ob-bar"><div class="fill"></div></div>
       <div class="ob-bar"><div class="fill"></div></div>
+      <div class="ob-bar"><div class="fill"></div></div>
+      <div class="ob-bar"><div class="fill"></div></div>
     </div>
     <div class="ob-content">
       <div class="ob-step active" data-step="0">
-        <div class="ob-icon">📞</div>
-        <div class="ob-title">替你接打电话</div>
-        <div class="ob-desc">知音是另一个你——用你的方式接听来电、处理事务</div>
+        <div class="ob-icon">🎭</div>
+        <div class="ob-title">另一个你</div>
+        <div class="ob-desc">知音是你的数字分身——用你的方式接听来电、替你处理事务</div>
       </div>
       <div class="ob-step" data-step="1">
         <div class="ob-icon">🧠</div>
-        <div class="ob-title">塑造你的知音</div>
+        <div class="ob-title">教知音成为你</div>
         <div class="ob-desc">告诉知音你的习惯和偏好，它会越来越像你</div>
       </div>
       <div class="ob-step" data-step="2">
-        <div class="ob-icon">📋</div>
-        <div class="ob-title">替你拨出电话</div>
-        <div class="ob-desc">给知音一个指令，让它以你的身份拨出电话完成任务</div>
+        <div class="ob-icon">📞</div>
+        <div class="ob-title">替你打电话</div>
+        <div class="ob-desc">告诉知音你要说什么，它以你的身份拨给对方</div>
       </div>
       <div class="ob-step" data-step="3">
         <div class="ob-icon">👋</div>
         <div class="ob-title">你怎么称呼？</div>
         <div class="ob-desc">知音会以这个身份与对方沟通</div>
         <input class="ob-input" id="obName" placeholder="请输入你的称呼">
+      </div>
+      <div class="ob-step" data-step="4">
+        <div class="ob-icon">🎵</div>
+        <div class="ob-title">选一个声音代表你</div>
+        <div class="ob-desc">知音会用这个声音替你接打电话</div>
+        <div style="width:100%;max-width:320px;margin-top:20px;text-align:left">
+          <label style="display:flex;align-items:center;gap:10px;padding:14px;background:var(--bg-card);border:1px solid var(--border);border-radius:12px;margin-bottom:8px;cursor:pointer">
+            <input type="radio" name="obVoice" value="v-male-W1tH9jVc" checked style="accent-color:var(--blue)">
+            <span style="font-size:15px">自然男声</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:10px;padding:14px;background:var(--bg-card);border:1px solid var(--border);border-radius:12px;margin-bottom:8px;cursor:pointer">
+            <input type="radio" name="obVoice" value="v-female-qingxin" style="accent-color:var(--blue)">
+            <span style="font-size:15px">清新女声</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:10px;padding:14px;background:var(--bg-card);border:1px solid var(--border);border-radius:12px;margin-bottom:8px;cursor:pointer">
+            <input type="radio" name="obVoice" value="v-male-chenshu" style="accent-color:var(--blue)">
+            <span style="font-size:15px">沉稳男声</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:10px;padding:14px;background:var(--bg-card);border:1px solid var(--border);border-radius:12px;margin-bottom:8px;cursor:pointer">
+            <input type="radio" name="obVoice" value="v-female-wenrou" style="accent-color:var(--blue)">
+            <span style="font-size:15px">温柔女声</span>
+          </label>
+          <div style="text-align:center;margin-top:12px;font-size:13px;color:var(--text-3)">声音克隆即将上线</div>
+        </div>
+      </div>
+      <div class="ob-step" data-step="5">
+        <div class="ob-icon">📲</div>
+        <div class="ob-title">把知音放到桌面</div>
+        <div class="ob-desc">安装后即使不开网页，来电也会弹通知——像接电话一样</div>
+        <button class="ob-input" id="obInstallBtn" onclick="triggerPWAInstall()" style="margin-top:20px;background:var(--blue);color:#fff;border:none;font-size:15px;font-weight:600;cursor:pointer;height:48px;border-radius:12px;width:100%;max-width:300px">安装到桌面</button>
+        <div style="margin-top:12px;font-size:13px;color:var(--text-3)">也可以稍后在设置中安装</div>
       </div>
     </div>
     <div class="ob-actions">
@@ -352,13 +385,32 @@
 
       <!-- Tab 2: Tasks -->
       <div class="tab-panel" id="panelTasks">
-        <div class="section-title">新建拨出任务</div>
-        <div class="card task-form">
-          <input class="input" id="taskTarget" placeholder="对方称呼（如：张医生）">
-          <textarea class="textarea" id="taskInstruction" placeholder="你想让知音替你说什么（如：帮我预约下周三下午的门诊）"></textarea>
-          <button class="btn btn-primary" style="width:100%" onclick="createTask()" id="createTaskBtn">生成通话链接</button>
+        <!-- 通讯录 -->
+        <div class="section-title" style="display:flex;align-items:center;justify-content:space-between">
+          <span>通讯录</span>
+          <button style="background:none;border:none;color:var(--blue);font-size:13px;cursor:pointer" onclick="showAddFriend()">+ 添加</button>
         </div>
-        <div class="section-title">已创建任务</div>
+        <div class="card" id="friendsList" style="padding:4px 16px"></div>
+
+        <!-- 添加好友弹层 -->
+        <div id="addFriendBox" style="display:none;margin-bottom:16px">
+          <div class="card" style="padding:12px">
+            <div style="display:flex;gap:8px">
+              <input class="input" id="searchFriendInput" placeholder="输入对方用户名" style="flex:1">
+              <button class="btn btn-primary" onclick="doAddFriend()" style="padding:0 16px;font-size:13px">添加</button>
+            </div>
+            <div id="searchFriendResult" style="margin-top:8px;font-size:13px;color:var(--text-3)"></div>
+          </div>
+        </div>
+
+        <!-- 拨出表单 -->
+        <div class="section-title">让知音替你打个电话</div>
+        <div class="card task-form">
+          <input class="input" id="taskTarget" placeholder="打给谁">
+          <textarea class="textarea" id="taskInstruction" placeholder="你要说什么事"></textarea>
+          <button class="btn btn-primary" style="width:100%" onclick="createTask()" id="createTaskBtn">拨出</button>
+        </div>
+        <div class="section-title">拨出记录</div>
         <div id="taskList"></div>
       </div>
 
@@ -448,6 +500,7 @@
           </div>
         </div>
         <button class="btn btn-primary" style="width:100%;margin-bottom:12px" onclick="saveProfile()" id="saveProfileBtn">保存设置</button>
+        <button class="btn btn-outline" style="width:100%;margin-bottom:12px" onclick="shareInvite()">邀请朋友一起用知音</button>
         <button class="btn btn-danger logout-btn" onclick="doLogout()">退出登录</button>
       </div>
     </div>
@@ -459,8 +512,8 @@
         <span>首页</span>
       </button>
       <button class="tab-item" data-tab="panelTasks" onclick="switchTab(this)">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 14l2 2 4-4"/></svg>
-        <span>任务</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/></svg>
+        <span>拨出</span>
       </button>
       <button class="tab-item" data-tab="panelShaping" onclick="switchTab(this)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a4 4 0 014 4c0 2-2 3-2 6h-4c0-3-2-4-2-6a4 4 0 014-4z"/><path d="M10 18h4"/><path d="M10 22h4"/></svg>
@@ -481,6 +534,21 @@
     <div class="call-modal-actions">
       <button class="call-action-btn call-decline" onclick="declineCall()">✕</button>
       <button class="call-action-btn call-accept" onclick="acceptCall()">✓</button>
+    </div>
+  </div>
+
+  <!-- Dialing Overlay (拨出动画) -->
+  <div class="call-modal" id="dialingOverlay">
+    <div class="call-modal-icon" style="animation:ring 1.5s ease infinite">📞</div>
+    <div class="call-modal-title" id="dialingName">拨出中...</div>
+    <div class="call-modal-sub" id="dialingStatus">正在呼叫</div>
+    <div style="margin-top:32px">
+      <button class="call-action-btn call-decline" onclick="cancelDialing()" style="width:56px;height:56px;border-radius:50%;border:none;background:var(--red);color:#fff;font-size:20px;cursor:pointer">✕</button>
+    </div>
+    <div id="dialingResult" style="margin-top:24px;display:none;text-align:center">
+      <p id="dialingResultText" style="font-size:15px;color:var(--text-2);margin-bottom:16px"></p>
+      <button id="dialingShareBtn" style="display:none;padding:12px 24px;border-radius:10px;border:none;background:var(--blue);color:#fff;font-size:14px;font-weight:600;cursor:pointer" onclick="copyDialingLink()">复制链接发给对方</button>
+      <button style="margin-top:12px;padding:12px 24px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--text-2);font-size:14px;cursor:pointer" onclick="closeDialing()">完成</button>
     </div>
   </div>
 
@@ -594,17 +662,57 @@ function updateObProgress() {
     else if (i === obStep) bar.classList.add('active');
   });
   document.querySelectorAll('.ob-step').forEach((s, i) => s.classList.toggle('active', i === obStep));
-  document.getElementById('obNextBtn').textContent = obStep === 3 ? '开始使用' : '下一步';
+  document.getElementById('obNextBtn').textContent = obStep === 5 ? '开始使用' : '下一步';
 }
 
 function nextOnboarding() {
   if (obStep === 3) {
+    // 保存称呼
     const name = document.getElementById('obName').value.trim();
     if (name) { profile.nickname = name; }
+    obStep++;
+    updateObProgress();
+  } else if (obStep === 4) {
+    // 保存音色选择
+    const selected = document.querySelector('input[name="obVoice"]:checked');
+    if (selected) {
+      profile.voice_id = selected.value;
+    }
+    obStep++;
+    updateObProgress();
+  } else if (obStep === 5) {
+    // 最后一步：完成
     finishOnboarding();
   } else {
     obStep++;
     updateObProgress();
+  }
+}
+
+// PWA 安装逻辑
+let deferredInstallPrompt = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+});
+
+function triggerPWAInstall() {
+  if (deferredInstallPrompt) {
+    deferredInstallPrompt.prompt();
+    deferredInstallPrompt.userChoice.then(result => {
+      if (result.outcome === 'accepted') {
+        showToast('安装成功！');
+      }
+      deferredInstallPrompt = null;
+    });
+  } else {
+    // 浏览器不支持自动安装提示，给手动指引
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    if (isIOS) {
+      showToast('点击底部分享按钮 → "添加到主屏幕"');
+    } else {
+      showToast('点击浏览器菜单 → "安装应用" 或 "添加到主屏幕"');
+    }
   }
 }
 
@@ -613,6 +721,13 @@ function skipOnboarding() { finishOnboarding(); }
 function finishOnboarding() {
   localStorage.setItem('zs_onboarded', '1');
   document.getElementById('onboarding').classList.add('hidden');
+  // 保存 onboarding 收集的信息到后端
+  const saveData = {};
+  if (profile.nickname) saveData.identity = { name: profile.nickname, nickname: profile.nickname };
+  if (profile.voice_id) saveData.voice = { mode: 'preset', voice_id: profile.voice_id, tts_type: 'flow', model: 'flow_01_turbo', speed: 1.0, language: 'zh' };
+  if (Object.keys(saveData).length > 0) {
+    fetch('/api/profile', { method: 'PUT', headers: getHeaders(), body: JSON.stringify(saveData) }).catch(() => {});
+  }
   showMainApp();
 }
 
@@ -799,8 +914,88 @@ function declineCall() {
   showToast('已拒绝来电');
 }
 
-// ===== Tab 2: Tasks =====
+// ===== Tab 2: 拨出 + 通讯录 =====
+
+// --- 通讯录 ---
+async function loadFriends() {
+  try {
+    const res = await fetch('/api/friends', { headers: getHeaders() });
+    if (!res.ok) throw new Error();
+    const friends = await res.json();
+    renderFriends(friends);
+  } catch(e) {
+    renderFriends([]);
+  }
+}
+
+function renderFriends(friends) {
+  const el = document.getElementById('friendsList');
+  if (!friends || friends.length === 0) {
+    el.innerHTML = '<div style="padding:16px 0;text-align:center;color:var(--text-3);font-size:14px">还没有联系人<br><span style="font-size:12px">点击上方"+ 添加"邀请朋友</span></div>';
+    return;
+  }
+  el.innerHTML = friends.map(f => `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:0.5px solid var(--border)">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#667eea,#764ba2);display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff">${esc(f.nickname?.[0] || f.username?.[0] || '?')}</div>
+        <div>
+          <div style="font-size:15px;font-weight:500">${esc(f.nickname || f.username)}</div>
+          <div style="font-size:12px;color:var(--text-3)">@${esc(f.username)}</div>
+        </div>
+      </div>
+      <button onclick="callFriend('${esc(f.nickname || f.username)}')" style="width:36px;height:36px;border-radius:50%;border:none;background:rgba(48,209,88,0.12);color:var(--green);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center">📞</button>
+    </div>
+  `).join('');
+}
+
+function callFriend(name) {
+  document.getElementById('taskTarget').value = name;
+  document.getElementById('taskInstruction').focus();
+}
+
+function showAddFriend() {
+  const box = document.getElementById('addFriendBox');
+  box.style.display = box.style.display === 'none' ? 'block' : 'none';
+  if (box.style.display === 'block') document.getElementById('searchFriendInput').focus();
+}
+
+async function doAddFriend() {
+  const username = document.getElementById('searchFriendInput').value.trim();
+  if (!username) { showToast('请输入用户名'); return; }
+  try {
+    const res = await fetch('/api/friends/add', {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ username })
+    });
+    const data = await res.json();
+    if (data.error) {
+      document.getElementById('searchFriendResult').textContent = data.error;
+      // 用户不存在时引导邀请
+      if (data.error === '用户不存在') {
+        document.getElementById('searchFriendResult').innerHTML = 'TA 还没有知音，<span style="color:var(--blue);cursor:pointer" onclick="inviteFriend()">邀请 TA</span>';
+      }
+      return;
+    }
+    showToast('已添加');
+    document.getElementById('searchFriendInput').value = '';
+    document.getElementById('searchFriendResult').textContent = '';
+    document.getElementById('addFriendBox').style.display = 'none';
+    loadFriends();
+  } catch(e) { showToast('添加失败'); }
+}
+
+async function inviteFriend() {
+  try {
+    const res = await fetch('/api/invite-link', { headers: getHeaders() });
+    const { link } = await res.json();
+    navigator.clipboard.writeText(link).then(() => showToast('邀请链接已复制，发给朋友'));
+  } catch { showToast('获取邀请链接失败'); }
+}
+
+// --- 拨出任务 ---
 async function loadTasks() {
+  loadFriends(); // 同时加载通讯录
   try {
     const res = await fetch('/api/outbound', { headers: getHeaders() });
     if (!res.ok) throw new Error();
@@ -828,12 +1023,21 @@ function renderTasks(tasks) {
   }).join('');
 }
 
+let lastDialLink = '';
+
 async function createTask() {
   const target = document.getElementById('taskTarget').value.trim();
   const instruction = document.getElementById('taskInstruction').value.trim();
-  if (!instruction) { showToast('请填写指令内容'); return; }
-  const btn = document.getElementById('createTaskBtn');
-  setLoading(btn, true);
+  if (!instruction) { showToast('请说一下要说什么事'); return; }
+
+  // 显示拨号动画
+  const overlay = document.getElementById('dialingOverlay');
+  document.getElementById('dialingName').textContent = target || '对方';
+  document.getElementById('dialingStatus').textContent = '正在呼叫...';
+  document.getElementById('dialingResult').style.display = 'none';
+  document.getElementById('dialingShareBtn').style.display = 'none';
+  overlay.classList.add('show');
+
   try {
     const res = await fetch('/api/outbound/create', {
       method: 'POST',
@@ -842,17 +1046,43 @@ async function createTask() {
     });
     if (!res.ok) throw new Error();
     const data = await res.json();
-    showToast(data.targetIsRegistered ? '已通知对方' : '链接已生成');
+
     document.getElementById('taskTarget').value = '';
     document.getElementById('taskInstruction').value = '';
     loadTasks();
-    if (data.callLink && !data.targetIsRegistered) {
-      navigator.clipboard.writeText(data.callLink).then(() => showToast('链接已复制，发给对方即可'));
-    }
+
+    // 延迟一秒显示结果（模拟拨号感）
+    setTimeout(() => {
+      document.getElementById('dialingStatus').textContent = '';
+      document.getElementById('dialingResult').style.display = 'block';
+      if (data.targetIsRegistered) {
+        document.getElementById('dialingResultText').textContent = '已通知 ' + (target || '对方') + '，等待接听';
+      } else {
+        document.getElementById('dialingResultText').textContent = '对方还没有知音，把链接发给 TA 即可接听';
+        document.getElementById('dialingShareBtn').style.display = 'inline-block';
+        lastDialLink = data.callLink || '';
+      }
+    }, 1500);
+
   } catch(e) {
-    showToast('创建失败');
+    document.getElementById('dialingStatus').textContent = '拨出失败';
+    document.getElementById('dialingResult').style.display = 'block';
+    document.getElementById('dialingResultText').textContent = '请检查网络后重试';
   }
-  setLoading(btn, false);
+}
+
+function copyDialingLink() {
+  if (lastDialLink) {
+    navigator.clipboard.writeText(lastDialLink).then(() => showToast('链接已复制'));
+  }
+}
+
+function cancelDialing() {
+  document.getElementById('dialingOverlay').classList.remove('show');
+}
+
+function closeDialing() {
+  document.getElementById('dialingOverlay').classList.remove('show');
 }
 
 function copyTaskLink(link) {
@@ -1017,6 +1247,18 @@ function doLogout() {
   localStorage.removeItem('zs_username');
   if (pollTimer) clearInterval(pollTimer);
   location.reload();
+}
+
+async function shareInvite() {
+  try {
+    const res = await fetch('/api/invite-link', { headers: getHeaders() });
+    const { link } = await res.json();
+    if (navigator.share) {
+      navigator.share({ title: '知音 — 另一个懂你的自己', text: '我在用知音，来试试吧', url: link });
+    } else {
+      navigator.clipboard.writeText(link).then(() => showToast('邀请链接已复制'));
+    }
+  } catch { showToast('获取邀请链接失败'); }
 }
 
 // ===== Voice Settings =====
