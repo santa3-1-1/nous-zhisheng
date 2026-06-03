@@ -145,13 +145,14 @@ export function saveUserKnowledge(userId, knowledge) {
 }
 
 /**
- * 注册
+ * 注册 — 知音号 = 用户名（类似微信号规则）
  */
 export function register(username, password, nickname) {
   if (!username || !password) return { error: '用户名和密码不能为空' };
-  if (username.length < 2 || username.length > 20) return { error: '用户名 2-20 个字符' };
+  if (username.length < 2 || username.length > 20) return { error: '知音号 2-20 个字符' };
+  if (!/^[a-zA-Z0-9_]+$/.test(username)) return { error: '知音号只能包含字母、数字和下划线' };
   if (password.length < 4) return { error: '密码至少 4 位' };
-  if (usersIndex[username]) return { error: '用户名已存在' };
+  if (usersIndex[username]) return { error: '该知音号已被使用' };
 
   const userId = 'u_' + crypto.randomBytes(4).toString('hex');
   const passwordHash = hashPassword(password);
@@ -282,15 +283,39 @@ export function addFriend(userId, friendUserId, friendUsername, friendNickname) 
  * 删除好友（双向）
  */
 export function removeFriend(userId, friendUserId) {
-  // 从自己列表移除
   let myFriends = getFriends(userId);
   myFriends = myFriends.filter(f => f.userId !== friendUserId);
   writeFileSync(getFriendsFile(userId), JSON.stringify(myFriends, null, 2));
 
-  // 从对方列表移除
   let theirFriends = getFriends(friendUserId);
   theirFriends = theirFriends.filter(f => f.userId !== userId);
   writeFileSync(getFriendsFile(friendUserId), JSON.stringify(theirFriends, null, 2));
 
   return { success: true };
+}
+
+/**
+ * 修改好友备注
+ */
+export function updateFriendRemark(userId, friendUserId, remark) {
+  const friends = getFriends(userId);
+  const friend = friends.find(f => f.userId === friendUserId);
+  if (!friend) return { error: '好友不存在' };
+  friend.remark = remark;
+  writeFileSync(getFriendsFile(userId), JSON.stringify(friends, null, 2));
+  return { success: true };
+}
+
+/**
+ * 通过知音号查找用户（精确匹配，用于拨出）
+ */
+export function findUserByZhiyinId(zhiyinId) {
+  const user = usersIndex[zhiyinId];
+  if (!user) return null;
+  const profile = getUserProfile(user.userId);
+  return {
+    userId: user.userId,
+    username: zhiyinId,
+    nickname: profile.identity?.nickname || zhiyinId,
+  };
 }

@@ -4,121 +4,79 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="theme-color" content="#0a0a0a">
-  <title>知音 — 来电</title>
+  <meta name="theme-color" content="#000000">
+  <title>来电</title>
   <style>
-    :root { --bg:#0a0a0a; --card:#1c1c1e; --border:#2c2c2e; --blue:#0a84ff; --green:#30d158; --orange:#ff9f0a; --red:#ff453a; --text:#fff; --text2:#ebebf5cc; --text3:#ebebf54d; }
-    * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-    body { font-family:-apple-system,'SF Pro Display',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; display:flex; flex-direction:column; -webkit-font-smoothing:antialiased; overflow:hidden; }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:-apple-system,'SF Pro Display',system-ui,sans-serif; background:#000; color:#fff; min-height:100vh; display:flex; flex-direction:column; -webkit-font-smoothing:antialiased; overflow:hidden; }
 
-    /* ===== 来电界面（全屏） ===== */
-    .incoming-screen {
-      position:fixed; inset:0; display:flex; flex-direction:column;
-      align-items:center; justify-content:center; padding:40px 24px;
-      background:linear-gradient(180deg, #1a1a2e 0%, #0a0a0a 100%);
-    }
-    .incoming-screen.hidden { display:none; }
+    /* 来电界面 */
+    .incoming { position:fixed; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:40px 24px; background:linear-gradient(180deg,#0a0a14 0%,#000 100%); }
+    .incoming.hidden { display:none; }
+    .inc-avatar { width:96px; height:96px; border-radius:50%; background:linear-gradient(135deg,#667eea,#764ba2); display:flex; align-items:center; justify-content:center; font-size:36px; font-weight:600; margin-bottom:24px; box-shadow:0 0 40px rgba(102,126,234,0.2); }
+    .inc-name { font-size:28px; font-weight:700; margin-bottom:48px; }
+    .inc-actions { display:flex; gap:56px; }
+    .inc-btn { display:flex; flex-direction:column; align-items:center; gap:8px; }
+    .inc-btn button { width:72px; height:72px; border-radius:50%; border:none; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:28px; transition:transform 0.2s; }
+    .inc-btn button:active { transform:scale(0.9); }
+    .inc-btn span { font-size:13px; color:#8e8e93; }
+    .btn-answer { background:#30d158; color:#fff; animation:answerPulse 1.5s ease infinite; }
+    .btn-decline { background:#ff453a; color:#fff; }
+    @keyframes answerPulse { 0%,100%{transform:scale(1);box-shadow:0 0 0 0 rgba(48,209,88,0.4)} 50%{transform:scale(1.05);box-shadow:0 0 0 12px rgba(48,209,88,0)} }
 
-    .caller-avatar {
-      width:96px; height:96px; border-radius:50%;
-      background:linear-gradient(135deg,#667eea,#764ba2);
-      display:flex; align-items:center; justify-content:center;
-      font-size:40px; margin-bottom:20px;
-      box-shadow:0 0 40px rgba(102,126,234,0.3);
-      animation:avatarPulse 2s ease infinite;
-    }
-    @keyframes avatarPulse {
-      0%,100%{box-shadow:0 0 40px rgba(102,126,234,0.3)}
-      50%{box-shadow:0 0 60px rgba(102,126,234,0.5)}
-    }
-
-    .caller-name { font-size:28px; font-weight:700; margin-bottom:6px; }
-    .caller-desc { font-size:15px; color:var(--text2); margin-bottom:48px; }
-
-    .call-actions { display:flex; gap:48px; margin-top:auto; margin-bottom:60px; }
-    .call-action {
-      display:flex; flex-direction:column; align-items:center; gap:8px;
-    }
-    .call-action-btn {
-      width:72px; height:72px; border-radius:50%; border:none;
-      display:flex; align-items:center; justify-content:center;
-      cursor:pointer; font-size:28px; transition:transform 0.2s;
-    }
-    .call-action-btn:active { transform:scale(0.9); }
-    .call-action-label { font-size:13px; color:var(--text2); }
-    .btn-answer { background:var(--green); color:#fff; animation:ringPulse 1.5s ease infinite; }
-    .btn-decline { background:var(--red); color:#fff; }
-    @keyframes ringPulse {
-      0%,100%{transform:scale(1)} 50%{transform:scale(1.08)}
-    }
-
-    .incoming-hint { position:absolute; bottom:24px; font-size:12px; color:var(--text3); }
-
-    /* ===== 通话界面 ===== */
-    .call-screen {
-      position:fixed; inset:0; display:none; flex-direction:column;
-      padding:60px 24px 40px; background:var(--bg);
-    }
+    /* 通话界面 */
+    .call-screen { position:fixed; inset:0; display:none; flex-direction:column; padding:60px 24px 40px; }
     .call-screen.active { display:flex; }
-
-    .call-header { text-align:center; margin-bottom:24px; }
-    .call-header-name { font-size:20px; font-weight:700; margin-bottom:4px; }
-    .call-header-status { font-size:14px; color:var(--text2); display:flex; align-items:center; justify-content:center; gap:6px; }
-    .live-dot { width:8px; height:8px; border-radius:50%; background:var(--green); animation:pulse 2s infinite; }
-    @keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.4} }
-
-    .chat-area {
-      flex:1; background:var(--card); border-radius:16px; padding:16px;
-      overflow-y:auto; display:flex; flex-direction:column; gap:8px;
-      border:1px solid var(--border); scroll-behavior:smooth;
-    }
-    .chat-area:empty::before { content:'接听后对话会显示在这里'; color:var(--text3); font-size:14px; text-align:center; margin:auto; }
-    .bubble { max-width:80%; padding:10px 14px; border-radius:16px; font-size:15px; line-height:1.4; animation:fadeIn 0.2s; }
+    .call-header { text-align:center; margin-bottom:20px; }
+    .call-header-name { font-size:18px; font-weight:600; margin-bottom:4px; }
+    .call-header-status { font-size:13px; color:#8e8e93; display:flex; align-items:center; justify-content:center; gap:6px; }
+    .dot { width:8px; height:8px; border-radius:50%; }
+    .dot-green { background:#30d158; animation:pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+    .chat-area { flex:1; background:#1c1c1e; border-radius:12px; padding:16px; overflow-y:auto; display:flex; flex-direction:column; gap:8px; scroll-behavior:smooth; }
+    .chat-area:empty::before { content:'通话进行中...'; color:#8e8e93; font-size:14px; text-align:center; margin:auto; }
+    .bubble { max-width:75%; padding:10px 14px; border-radius:16px; font-size:15px; line-height:1.4; animation:fadeIn 0.2s; }
     .bubble-ai { background:rgba(10,132,255,0.12); color:#a5c5f7; align-self:flex-start; border-bottom-left-radius:4px; }
     .bubble-user { background:rgba(48,209,88,0.12); color:#9be6b4; align-self:flex-end; border-bottom-right-radius:4px; }
-    .bubble-sys { align-self:center; font-size:12px; color:var(--text3); padding:4px 12px; background:rgba(255,255,255,0.04); border-radius:12px; }
-    @keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:none} }
-
+    .bubble-sys { align-self:center; font-size:12px; color:#8e8e93; padding:4px 12px; background:rgba(255,255,255,0.04); border-radius:12px; }
+    @keyframes fadeIn { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:none} }
     .call-footer { margin-top:20px; display:flex; justify-content:center; }
-    .hangup-btn {
-      width:64px; height:64px; border-radius:50%; border:none;
-      background:var(--red); color:#fff; font-size:24px;
-      cursor:pointer; display:flex; align-items:center; justify-content:center;
-      transition:transform 0.2s;
-    }
+    .hangup-btn { width:64px; height:64px; border-radius:50%; border:none; background:#ff453a; color:#fff; font-size:24px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
     .hangup-btn:active { transform:scale(0.9); }
   </style>
 </head>
 <body>
   <!-- 来电界面 -->
-  <div class="incoming-screen" id="incomingScreen">
-    <div class="caller-avatar">📞</div>
-    <div class="caller-name" id="callerName">来电</div>
-    <div class="caller-desc" id="callerDesc">有人通过知音联系你</div>
-
-    <div class="call-actions">
-      <div class="call-action">
-        <button class="call-action-btn btn-decline" onclick="decline()">✕</button>
-        <span class="call-action-label">拒绝</span>
+  <div class="incoming" id="incomingScreen">
+    <div class="inc-avatar" id="incAvatar">?</div>
+    <div class="inc-name" id="incName">来电</div>
+    <div class="inc-actions">
+      <div class="inc-btn">
+        <button class="btn-decline" onclick="decline()">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+        <span>拒绝</span>
       </div>
-      <div class="call-action">
-        <button class="call-action-btn btn-answer" onclick="answer()">✓</button>
-        <span class="call-action-label">接听</span>
+      <div class="inc-btn">
+        <button class="btn-answer" onclick="answer()">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.13.85.37 1.67.7 2.45"/></svg>
+        </button>
+        <span>接听</span>
       </div>
     </div>
-
-    <div class="incoming-hint">来自对方的知音 · Powered by Nous</div>
   </div>
 
   <!-- 通话界面 -->
   <div class="call-screen" id="callScreen">
     <div class="call-header">
       <div class="call-header-name" id="callName">通话中</div>
-      <div class="call-header-status"><div class="live-dot"></div><span id="callStatus">通话中</span></div>
+      <div class="call-header-status"><div class="dot dot-green"></div><span id="callStatus">通话中</span></div>
     </div>
     <div class="chat-area" id="chat"></div>
     <div class="call-footer">
-      <button class="hangup-btn" onclick="endCall()">✕</button>
+      <button class="hangup-btn" onclick="endCall()">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
     </div>
   </div>
 
@@ -129,25 +87,16 @@
     const callerId = 'target_' + Math.random().toString(36).slice(2, 8);
     let trtc = null, taskData = null;
 
-    // 加载任务信息
     async function loadTask() {
-      if (!outboundId) {
-        document.getElementById('callerDesc').textContent = '无效链接';
-        return;
-      }
+      if (!outboundId) { document.getElementById('incName').textContent = '无效链接'; return; }
       try {
         const res = await fetch(`/api/outbound/${outboundId}`);
         taskData = await res.json();
-        if (taskData.error) {
-          document.getElementById('callerDesc').textContent = '通话已结束';
-          return;
-        }
-        
-        document.getElementById('callerName').textContent = taskData.ownerName || '来电';
-        document.getElementById('callerDesc').textContent = 'TA 有事要跟你说';
-      } catch (e) {
-        document.getElementById('callerDesc').textContent = '加载失败';
-      }
+        if (taskData.error) { document.getElementById('incName').textContent = '通话已结束'; return; }
+        const name = taskData.ownerName || '来电';
+        document.getElementById('incName').textContent = name;
+        document.getElementById('incAvatar').textContent = name[0] || '?';
+      } catch { document.getElementById('incName').textContent = '加载失败'; }
     }
 
     function addBubble(type, text) {
@@ -161,15 +110,12 @@
 
     async function answer() {
       if (!taskData) return;
-      
-      // 切换到通话界面
       document.getElementById('incomingScreen').classList.add('hidden');
       document.getElementById('callScreen').classList.add('active');
       document.getElementById('callName').textContent = taskData.ownerName || '对方';
       document.getElementById('callStatus').textContent = '连接中...';
 
       try {
-        // 1. 启动AI（代打模式）
         const startRes = await fetch('/api/outbound/start', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -178,10 +124,8 @@
         const startData = await startRes.json();
         if (!startData.success) throw new Error(startData.error);
 
-        // 2. 进入TRTC房间
         const sigRes = await fetch(`/api/usersig/${callerId}`);
         const { sdkAppId, userId, userSig } = await sigRes.json();
-
         trtc = TRTC.create();
         await trtc.enterRoom({ sdkAppId, userId, userSig, roomId: taskData.roomId });
         await trtc.startLocalAudio({ option: { profile: 'speech' } });
@@ -189,7 +133,6 @@
         document.getElementById('callStatus').textContent = '通话中';
         addBubble('sys', '已接通');
 
-        // 3. 监听字幕
         trtc.on(TRTC.EVENT.CUSTOM_MESSAGE, (event) => {
           try {
             const msg = JSON.parse(new TextDecoder().decode(event.data));
@@ -200,22 +143,20 @@
           } catch {}
         });
 
-        // 监听真身接入
         trtc.on(TRTC.EVENT.REMOTE_USER_ENTER, (event) => {
           if (event.userId.startsWith('owner_')) {
-            addBubble('sys', '本人已接入通话');
-            document.getElementById('callStatus').textContent = '已转接给本人';
+            addBubble('sys', '本人已接入');
+            document.getElementById('callStatus').textContent = '已转接';
           }
         });
       } catch (err) {
         document.getElementById('callStatus').textContent = '连接失败';
-        addBubble('sys', '连接失败: ' + err.message);
       }
     }
 
     function decline() {
-      document.getElementById('callerDesc').textContent = '已拒绝';
-      document.querySelector('.call-actions').style.display = 'none';
+      document.getElementById('incName').textContent = '已拒绝';
+      document.querySelector('.inc-actions').style.display = 'none';
     }
 
     async function endCall() {

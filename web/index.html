@@ -15,22 +15,20 @@
       --elevated: #2c2c2e;
       --border: #3a3a3c;
       --text: #ffffff;
-      --text-2: rgba(235,235,245,0.8);
-      --text-3: rgba(235,235,245,0.3);
-      --label-tertiary: #8e8e93;
+      --text-2: #ebebf5cc;
+      --text-3: #8e8e93;
       --blue: #0a84ff;
       --green: #30d158;
       --orange: #ff9f0a;
       --red: #ff453a;
       --tab-h: 82px;
       --radius: 12px;
-      --radius-sm: 10px;
       --safe-b: env(safe-area-inset-bottom, 0px);
       --sidebar-w: 240px;
     }
     * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     body {
-      font-family: -apple-system, 'SF Pro Display', 'SF Pro Text', system-ui, sans-serif;
+      font-family: -apple-system, 'SF Pro Display', system-ui, sans-serif;
       background: var(--bg); color: var(--text);
       overflow: hidden; position: fixed; width: 100%; height: 100%;
       -webkit-font-smoothing: antialiased;
@@ -40,12 +38,12 @@
     /* ===== Splash ===== */
     .splash {
       position: fixed; inset: 0; z-index: 9999; background: var(--bg);
-      display: flex; align-items: center; justify-content: center; flex-direction: column;
+      display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 16px;
       transition: opacity 0.4s ease;
     }
     .splash.hide { opacity: 0; pointer-events: none; }
-    .splash-logo { font-size: 52px; font-weight: 700; color: var(--blue); letter-spacing: -1px; }
-    .splash-sub { margin-top: 10px; color: var(--text-2); font-size: 15px; font-weight: 400; }
+    .splash img { width: 56px; height: 56px; border-radius: 12px; }
+    .splash-text { font-size: 24px; font-weight: 700; }
 
     /* ===== Login ===== */
     .login-page {
@@ -54,12 +52,12 @@
       padding: 40px 20px;
     }
     .login-page.hidden { display: none; }
-    .login-title { font-size: 32px; font-weight: 700; margin-bottom: 8px; letter-spacing: -0.5px; }
-    .login-subtitle { color: var(--text-2); font-size: 15px; margin-bottom: 48px; }
-    .login-form { width: 100%; max-width: 360px; }
+    .login-title { font-size: 24px; font-weight: 700; margin-bottom: 6px; }
+    .login-subtitle { color: var(--text-3); font-size: 14px; margin-bottom: 40px; }
+    .login-form { width: 100%; max-width: 340px; }
     .login-card {
       background: var(--surface); border-radius: var(--radius); overflow: hidden;
-      margin-bottom: 20px;
+      margin-bottom: 20px; border: 0.5px solid var(--border);
     }
     .login-input {
       width: 100%; height: 50px; border: none; border-bottom: 0.5px solid var(--border);
@@ -71,15 +69,11 @@
     .login-input:focus { background: rgba(10,132,255,0.04); }
     .login-btn {
       width: 100%; height: 50px; border-radius: var(--radius); border: none;
-      background: var(--blue); color: #fff; font-size: 16px; font-weight: 600; cursor: pointer;
-      transition: opacity 0.2s;
+      color: #fff; font-size: 16px; font-weight: 600; cursor: pointer;
+      transition: opacity 0.2s; font-family: inherit;
     }
     .login-btn:active { opacity: 0.8; }
     .login-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-    .demo-btn {
-      margin-top: 16px; background: transparent; border: none; color: var(--label-tertiary);
-      font-size: 14px; cursor: pointer; text-decoration: underline;
-    }
 
     /* ===== Onboarding ===== */
     .onboarding {
@@ -93,14 +87,18 @@
     .ob-bar.done .fill { width: 100%; }
     .ob-bar.active .fill { width: 50%; animation: obPulse 1.5s ease infinite; }
     @keyframes obPulse { 0%,100%{width:30%} 50%{width:70%} }
-    .ob-content { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; }
-    .ob-step { display: none; flex-direction: column; align-items: center; text-align: center; }
+    .ob-content { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative; }
+    .ob-step {
+      display: none; flex-direction: column; align-items: center; text-align: center;
+      animation: obFadeIn 0.3s ease;
+    }
     .ob-step.active { display: flex; }
-    .ob-icon { font-size: 64px; margin-bottom: 28px; }
-    .ob-title { font-size: 26px; font-weight: 700; margin-bottom: 12px; letter-spacing: -0.3px; }
-    .ob-desc { color: var(--text-2); font-size: 15px; line-height: 1.6; max-width: 300px; }
+    @keyframes obFadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .ob-icon { margin-bottom: 24px; }
+    .ob-title { font-size: 20px; font-weight: 700; margin-bottom: 10px; }
+    .ob-desc { color: var(--text-3); font-size: 14px; line-height: 1.6; max-width: 300px; }
     .ob-input {
-      width: 100%; max-width: 300px; height: 48px; border-radius: var(--radius-sm);
+      width: 100%; max-width: 300px; height: 48px; border-radius: 10px;
       border: 0.5px solid var(--border); background: var(--surface); color: var(--text);
       padding: 0 16px; font-size: 16px; margin-top: 24px; outline: none; text-align: center;
       font-family: inherit;
@@ -111,47 +109,129 @@
     .ob-next {
       flex: 1; height: 50px; border-radius: var(--radius); border: none;
       background: var(--blue); color: #fff; font-size: 16px; font-weight: 600; cursor: pointer;
-      transition: opacity 0.2s;
+      transition: opacity 0.2s; font-family: inherit;
     }
     .ob-next:active { opacity: 0.8; }
     .ob-skip {
-      height: 50px; padding: 0 24px; border-radius: var(--radius); border: 0.5px solid var(--border);
-      background: transparent; color: var(--text-2); font-size: 16px; cursor: pointer;
-      transition: opacity 0.2s;
+      height: 50px; padding: 0 20px; border-radius: var(--radius); border: 0.5px solid var(--border);
+      background: transparent; color: var(--text-2); font-size: 15px; cursor: pointer;
+      transition: opacity 0.2s; font-family: inherit;
     }
     .ob-skip:active { opacity: 0.7; }
+    .ob-voice-card {
+      width: 100%; max-width: 320px; background: var(--surface); border-radius: var(--radius);
+      padding: 14px 16px; margin-bottom: 8px; cursor: pointer; display: flex;
+      align-items: center; gap: 12px; border: 0.5px solid var(--border); transition: border-color 0.2s;
+    }
+    .ob-voice-card.selected { border-color: var(--blue); background: rgba(10,132,255,0.06); }
+    .ob-voice-card .voice-info { flex: 1; text-align: left; }
+    .ob-voice-card .voice-name { font-size: 15px; font-weight: 500; margin-bottom: 2px; }
+    .ob-voice-card .voice-desc { font-size: 12px; color: var(--text-3); }
+    .ob-voice-card .voice-preview {
+      font-size: 12px; color: var(--blue); background: rgba(10,132,255,0.1);
+      border: none; border-radius: 6px; padding: 4px 10px; cursor: pointer; font-family: inherit;
+    }
+
+    /* ===== First Conversation ===== */
+    .first-convo {
+      position: fixed; inset: 0; z-index: 6500; background: var(--bg);
+      display: flex; flex-direction: column;
+    }
+    .first-convo.hidden { display: none; }
+    .fc-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 20px; border-bottom: 0.5px solid var(--border);
+      padding-top: calc(env(safe-area-inset-top, 16px) + 16px);
+    }
+    .fc-header-title { font-size: 17px; font-weight: 600; }
+    .fc-header-skip { font-size: 14px; color: var(--blue); background: none; border: none; cursor: pointer; font-family: inherit; }
+    .fc-messages {
+      flex: 1; overflow-y: auto; padding: 16px 20px; display: flex; flex-direction: column; gap: 12px;
+      -webkit-overflow-scrolling: touch;
+    }
+    .fc-msg {
+      max-width: 80%; padding: 10px 14px; border-radius: 16px; font-size: 15px; line-height: 1.5;
+      animation: obFadeIn 0.3s ease;
+    }
+    .fc-msg.bot { align-self: flex-start; background: var(--blue); color: #fff; border-bottom-left-radius: 4px; }
+    .fc-msg.user { align-self: flex-end; background: var(--green); color: #fff; border-bottom-right-radius: 4px; }
+    .fc-input-bar {
+      display: flex; gap: 10px; padding: 12px 20px;
+      padding-bottom: calc(var(--safe-b) + 12px);
+      border-top: 0.5px solid var(--border); background: var(--surface);
+    }
+    .fc-input {
+      flex: 1; height: 40px; border-radius: 20px; border: 0.5px solid var(--border);
+      background: var(--bg); color: var(--text); padding: 0 16px; font-size: 15px;
+      outline: none; font-family: inherit;
+    }
+    .fc-input::placeholder { color: var(--text-3); }
+    .fc-send {
+      width: 40px; height: 40px; border-radius: 50%; border: none;
+      background: var(--blue); color: #fff; font-size: 18px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .fc-start-btn {
+      margin: 12px 20px; padding: 14px; border-radius: var(--radius); border: none;
+      background: var(--blue); color: #fff; font-size: 16px; font-weight: 600;
+      cursor: pointer; font-family: inherit; animation: obFadeIn 0.3s ease;
+    }
 
     /* ===== Main App ===== */
     .main-app { flex: 1; display: flex; flex-direction: row; overflow: hidden; }
     .main-app.hidden { display: none; }
 
+    /* Header */
+    .app-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 20px; border-bottom: 0.5px solid var(--border);
+      padding-top: calc(env(safe-area-inset-top, 12px) + 12px);
+      background: rgba(0,0,0,0.9); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    }
+    .app-header-title { font-size: 18px; font-weight: 700; }
+    .app-header-avatar {
+      width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #667eea, #764ba2);
+      display: flex; align-items: center; justify-content: center; font-size: 13px;
+      color: #fff; font-weight: 600; cursor: pointer; border: none;
+    }
+
     /* Sidebar - desktop only */
     .sidebar {
       display: none; width: var(--sidebar-w); background: #141414;
       border-right: 0.5px solid var(--border); flex-shrink: 0;
-      padding: 20px 0; overflow-y: auto;
+      padding: 20px 0; overflow-y: auto; flex-direction: column;
     }
     .sidebar-brand {
       padding: 12px 20px 24px; font-size: 20px; font-weight: 700; color: var(--blue);
-      letter-spacing: -0.5px;
     }
-    .sidebar-nav { display: flex; flex-direction: column; gap: 2px; }
+    .sidebar-nav { display: flex; flex-direction: column; gap: 2px; flex: 1; }
     .sidebar-item {
       display: flex; align-items: center; gap: 10px; padding: 10px 12px; margin: 0 8px;
-      border-radius: 8px; background: none; border: none; color: var(--label-tertiary);
+      border-radius: 8px; background: none; border: none; color: var(--text-3);
       font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.15s;
-      text-align: left; width: calc(100% - 16px);
+      text-align: left; width: calc(100% - 16px); font-family: inherit;
     }
     .sidebar-item:hover { background: rgba(255,255,255,0.04); }
     .sidebar-item.active { background: rgba(10,132,255,0.12); color: var(--blue); }
     .sidebar-item svg { width: 20px; height: 20px; flex-shrink: 0; }
+    .sidebar-bottom {
+      padding: 16px 20px; border-top: 0.5px solid var(--border); margin-top: auto;
+    }
+    .sidebar-avatar-btn {
+      display: flex; align-items: center; gap: 10px; background: none; border: none;
+      color: var(--text-2); font-size: 14px; cursor: pointer; font-family: inherit;
+    }
+    .sidebar-avatar-btn .avatar-circle {
+      width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #667eea, #764ba2);
+      display: flex; align-items: center; justify-content: center; font-size: 12px; color: #fff; font-weight: 600;
+    }
 
     /* Content Area */
     .main-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
 
     /* Tab Content */
     .tab-content { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-bottom: calc(var(--tab-h) + var(--safe-b)); }
-    .tab-panel { display: none; padding: 20px 20px; min-height: 100%; }
+    .tab-panel { display: none; padding: 20px; min-height: 100%; }
     .tab-panel.active { display: block; }
 
     /* Tab Bar - mobile only */
@@ -163,7 +243,7 @@
     }
     .tab-item {
       flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px;
-      background: none; border: none; color: var(--label-tertiary); font-size: 10px; cursor: pointer;
+      background: none; border: none; color: var(--text-3); font-size: 10px; cursor: pointer;
       padding: 4px 0; transition: color 0.2s; font-family: inherit;
     }
     .tab-item.active { color: var(--blue); }
@@ -171,7 +251,7 @@
 
     /* ===== Common Components ===== */
     .section-header {
-      font-size: 13px; font-weight: 500; color: var(--label-tertiary); letter-spacing: 0.5px;
+      font-size: 13px; font-weight: 500; color: var(--text-3); letter-spacing: 0.5px;
       margin-bottom: 12px; padding: 0 4px; text-transform: uppercase;
     }
     .section-header-row {
@@ -179,22 +259,19 @@
       margin-bottom: 12px; padding: 0 4px;
     }
     .section-header-row .section-header { margin-bottom: 0; }
-
     .grouped-card {
       background: var(--surface); border-radius: var(--radius); overflow: hidden;
-      margin-bottom: 16px;
+      margin-bottom: 16px; border: 0.5px solid var(--border);
     }
     .grouped-row {
       display: flex; align-items: center; justify-content: space-between;
       padding: 14px 16px; border-bottom: 0.5px solid var(--border);
     }
     .grouped-row:last-child { border-bottom: none; }
-
     .card {
       background: var(--surface); border-radius: var(--radius);
-      padding: 16px; margin-bottom: 16px;
+      padding: 16px; margin-bottom: 16px; border: 0.5px solid var(--border);
     }
-
     .btn {
       height: 50px; border-radius: var(--radius); border: none; font-size: 15px;
       font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center;
@@ -206,10 +283,8 @@
     .btn-danger { background: var(--red); color: #fff; }
     .btn-outline { background: transparent; border: 0.5px solid var(--border); color: var(--text); }
     .btn-sm { height: 34px; padding: 0 16px; border-radius: 8px; font-size: 13px; }
-
     .spinner { width: 16px; height: 16px; border: 2px solid transparent; border-top-color: currentColor; border-radius: 50%; animation: spin 0.6s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
-
     .badge {
       display: inline-block; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;
     }
@@ -217,21 +292,18 @@
     .badge-orange { background: rgba(255,159,10,0.12); color: var(--orange); }
     .badge-blue { background: rgba(10,132,255,0.12); color: var(--blue); }
     .badge-red { background: rgba(255,69,58,0.12); color: var(--red); }
-
     .empty-state { text-align: center; padding: 60px 20px; color: var(--text-3); }
     .empty-state-icon { font-size: 48px; margin-bottom: 12px; }
-    .empty-state-text { font-size: 15px; }
-
-    /* Inputs */
+    .empty-state-text { font-size: 15px; line-height: 1.6; }
     .input {
-      width: 100%; height: 44px; border-radius: var(--radius-sm); border: 0.5px solid var(--border);
+      width: 100%; height: 44px; border-radius: 10px; border: 0.5px solid var(--border);
       background: var(--surface); color: var(--text); padding: 0 14px; font-size: 16px; outline: none;
       font-family: inherit;
     }
     .input::placeholder { color: var(--text-3); }
     .input:focus { border-color: var(--blue); }
     .textarea {
-      width: 100%; min-height: 80px; border-radius: var(--radius-sm); border: 0.5px solid var(--border);
+      width: 100%; min-height: 80px; border-radius: 10px; border: 0.5px solid var(--border);
       background: var(--surface); color: var(--text); padding: 12px 14px; font-size: 16px;
       outline: none; resize: none; font-family: inherit;
     }
@@ -239,28 +311,149 @@
     .textarea:focus { border-color: var(--blue); }
 
     /* ===== Tab 1: Home ===== */
-    .id-card { display: flex; align-items: center; justify-content: space-between; }
-    .id-card-left { flex: 1; min-width: 0; }
-    .id-card-label { font-size: 13px; color: var(--label-tertiary); margin-bottom: 6px; }
-    .id-card-url { font-size: 14px; color: var(--blue); word-break: break-all; font-weight: 500; }
-    .copy-btn {
-      width: 36px; height: 36px; border-radius: 8px; border: none;
-      background: var(--elevated); color: var(--text-2); display: flex; align-items: center;
-      justify-content: center; cursor: pointer; flex-shrink: 0; margin-left: 12px;
-      transition: opacity 0.2s;
+    .status-card {
+      display: flex; align-items: center; gap: 12px; padding: 16px;
+      background: var(--surface); border-radius: var(--radius); margin-bottom: 16px;
+      border: 0.5px solid var(--border);
     }
-    .copy-btn:active { opacity: 0.6; }
-
-    .status-indicator { display: flex; align-items: center; gap: 8px; padding: 16px 4px; }
+    .status-avatar {
+      width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #667eea, #764ba2);
+      display: flex; align-items: center; justify-content: center; font-size: 16px; color: #fff; font-weight: 600;
+    }
+    .status-info { flex: 1; }
+    .status-online { display: flex; align-items: center; gap: 6px; font-size: 14px; color: var(--green); }
     .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); animation: pulse 2s ease infinite; }
     @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.6;transform:scale(1.2)} }
-    .status-text { font-size: 14px; color: var(--text-2); }
-
+    .id-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 16px;
+    }
+    .id-label { font-size: 14px; color: var(--text-2); }
+    .id-value { font-size: 14px; font-family: 'SF Mono', 'Menlo', monospace; color: var(--blue); font-weight: 500; }
+    .copy-btn {
+      width: 32px; height: 32px; border-radius: 8px; border: none;
+      background: var(--elevated); color: var(--text-2); display: flex; align-items: center;
+      justify-content: center; cursor: pointer; flex-shrink: 0; transition: opacity 0.2s;
+    }
+    .copy-btn:active { opacity: 0.6; }
     .call-item { display: flex; flex-direction: column; gap: 6px; }
     .call-top { display: flex; align-items: center; justify-content: space-between; }
     .call-caller { font-size: 15px; font-weight: 600; }
-    .call-time { font-size: 12px; color: var(--label-tertiary); }
+    .call-time { font-size: 12px; color: var(--text-3); }
     .call-summary { font-size: 13px; color: var(--text-2); line-height: 1.5; }
+
+    /* ===== Tab 2: Dial ===== */
+    .friend-row {
+      display: flex; align-items: center; padding: 12px 16px;
+      border-bottom: 0.5px solid var(--border);
+    }
+    .friend-row:last-child { border-bottom: none; }
+    .friend-avatar {
+      width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #667eea, #764ba2);
+      display: flex; align-items: center; justify-content: center; font-size: 14px; color: #fff; flex-shrink: 0;
+    }
+    .friend-info { flex: 1; margin-left: 12px; }
+    .friend-name { font-size: 15px; font-weight: 500; }
+    .friend-username { font-size: 12px; color: var(--text-3); }
+    .friend-call-btn {
+      width: 36px; height: 36px; border-radius: 50%; border: none;
+      background: rgba(48,209,88,0.12); color: var(--green); font-size: 16px;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+    }
+    .dial-panel {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 6000;
+      background: var(--surface); border-top-left-radius: 16px; border-top-right-radius: 16px;
+      padding: 20px; padding-bottom: calc(var(--safe-b) + 20px);
+      border-top: 0.5px solid var(--border);
+      transform: translateY(100%); transition: transform 0.3s ease;
+    }
+    .dial-panel.show { transform: translateY(0); }
+    .dial-panel-header {
+      display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;
+    }
+    .dial-panel-title { font-size: 17px; font-weight: 600; }
+    .dial-panel-close {
+      font-size: 14px; color: var(--text-3); background: none; border: none; cursor: pointer; font-family: inherit;
+    }
+    .dial-overlay {
+      position: fixed; inset: 0; z-index: 5999; background: rgba(0,0,0,0.5);
+      display: none;
+    }
+    .dial-overlay.show { display: block; }
+
+    /* ===== Tab 3: Shaping Chat ===== */
+    .shaping-chat { display: flex; flex-direction: column; height: 100%; min-height: calc(100vh - 200px); }
+    .shaping-messages {
+      flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 12px;
+      padding-bottom: 16px; -webkit-overflow-scrolling: touch;
+    }
+    .shaping-msg {
+      max-width: 80%; padding: 10px 14px; border-radius: 16px; font-size: 15px; line-height: 1.5;
+      animation: obFadeIn 0.3s ease;
+    }
+    .shaping-msg.bot { align-self: flex-start; background: var(--surface); color: var(--text); border: 0.5px solid var(--border); border-bottom-left-radius: 4px; }
+    .shaping-msg.user { align-self: flex-end; background: var(--blue); color: #fff; border-bottom-right-radius: 4px; }
+    .shaping-input-bar {
+      display: flex; gap: 10px; padding-top: 12px; border-top: 0.5px solid var(--border);
+    }
+    .shaping-input-bar input {
+      flex: 1; height: 40px; border-radius: 20px; border: 0.5px solid var(--border);
+      background: var(--surface); color: var(--text); padding: 0 16px; font-size: 15px;
+      outline: none; font-family: inherit;
+    }
+    .shaping-input-bar input::placeholder { color: var(--text-3); }
+    .shaping-input-bar button {
+      width: 40px; height: 40px; border-radius: 50%; border: none;
+      background: var(--blue); color: #fff; font-size: 18px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    /* ===== Settings Panel ===== */
+    .settings-overlay {
+      position: fixed; inset: 0; z-index: 8500; display: none;
+    }
+    .settings-overlay.show { display: flex; }
+    .settings-backdrop {
+      position: absolute; inset: 0; background: rgba(0,0,0,0.5);
+    }
+    .settings-panel {
+      position: absolute; top: 0; right: 0; bottom: 0; width: 100%; max-width: 380px;
+      background: var(--bg); overflow-y: auto; -webkit-overflow-scrolling: touch;
+      transform: translateX(100%); transition: transform 0.3s ease;
+      padding: 0 20px 40px;
+    }
+    .settings-overlay.show .settings-panel { transform: translateX(0); }
+    .settings-panel-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 20px 0 24px; position: sticky; top: 0; background: var(--bg); z-index: 1;
+      padding-top: calc(env(safe-area-inset-top, 20px) + 20px);
+    }
+    .settings-panel-title { font-size: 20px; font-weight: 700; }
+    .settings-panel-close { font-size: 15px; color: var(--blue); background: none; border: none; cursor: pointer; font-family: inherit; }
+    .settings-group { margin-bottom: 24px; }
+    .settings-group-title {
+      font-size: 13px; color: var(--text-3); font-weight: 500; letter-spacing: 0.5px;
+      text-transform: uppercase; margin-bottom: 8px; padding: 0 4px;
+    }
+    .settings-card { background: var(--surface); border-radius: var(--radius); overflow: hidden; border: 0.5px solid var(--border); }
+    .settings-row {
+      display: flex; align-items: center; justify-content: space-between; padding: 14px 16px;
+      border-bottom: 0.5px solid var(--border);
+    }
+    .settings-row:last-child { border-bottom: none; }
+    .settings-label { font-size: 15px; color: var(--text); }
+    .settings-input {
+      width: 160px; height: 36px; border-radius: 8px; border: none;
+      background: var(--elevated); color: var(--text); padding: 0 12px; font-size: 14px;
+      outline: none; text-align: right; font-family: inherit;
+    }
+    .settings-input:focus { box-shadow: 0 0 0 1px var(--blue); }
+    .settings-value { font-size: 14px; color: var(--text-2); }
+    .settings-row-btn {
+      width: 100%; padding: 14px 16px; background: none; border: none; border-bottom: 0.5px solid var(--border);
+      text-align: left; font-size: 15px; cursor: pointer; font-family: inherit;
+    }
+    .settings-row-btn:last-child { border-bottom: none; }
 
     /* ===== Incoming Call Modal ===== */
     .call-modal {
@@ -284,61 +477,10 @@
     .call-accept { background: var(--green); color: #fff; }
     .call-decline { background: var(--red); color: #fff; }
 
-    /* ===== Tab 2: Dial/Tasks ===== */
-    .task-form { margin-bottom: 24px; }
-    .task-form .input { margin-bottom: 10px; }
-    .task-form .textarea { margin-bottom: 12px; }
-    .task-item { display: flex; flex-direction: column; gap: 6px; cursor: pointer; }
-    .task-top { display: flex; align-items: center; justify-content: space-between; }
-    .task-name { font-size: 15px; font-weight: 600; }
-    .task-instruction { font-size: 13px; color: var(--text-2); line-height: 1.4; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
-
-    /* ===== Tab 3: Shaping ===== */
-    .shaping-input-group { display: flex; gap: 10px; margin-bottom: 16px; }
-    .shaping-input-group .textarea { flex: 1; min-height: 60px; }
-    .shaping-input-group .btn { flex-shrink: 0; align-self: flex-end; }
-    .knowledge-group { margin-top: 24px; }
-    .knowledge-input-row { display: flex; gap: 10px; margin-bottom: 16px; }
-    .knowledge-input-row .input { flex: 1; }
-    .rule-item, .knowledge-item {
-      display: flex; align-items: center; justify-content: space-between; padding: 14px 16px;
-      border-bottom: 0.5px solid var(--border);
-    }
-    .rule-item:last-child, .knowledge-item:last-child { border-bottom: none; }
-    .rule-text, .knowledge-text { flex: 1; font-size: 14px; color: var(--text-2); line-height: 1.5; padding-right: 12px; }
-    .del-btn {
-      width: 24px; height: 24px; border-radius: 50%; border: none; background: rgba(255,69,58,0.1);
-      color: var(--red); display: flex; align-items: center; justify-content: center;
-      cursor: pointer; font-size: 14px; flex-shrink: 0; transition: opacity 0.2s;
-    }
-    .del-btn:active { opacity: 0.6; }
-
-    /* ===== Tab 4: Profile ===== */
-    .settings-group { margin-bottom: 24px; }
-    .settings-group-title {
-      font-size: 13px; color: var(--label-tertiary); font-weight: 500; letter-spacing: 0.5px;
-      text-transform: uppercase; margin-bottom: 8px; padding: 0 16px;
-    }
-    .settings-card { background: var(--surface); border-radius: var(--radius); overflow: hidden; }
-    .settings-row {
-      display: flex; align-items: center; justify-content: space-between; padding: 14px 16px;
-      border-bottom: 0.5px solid var(--border);
-    }
-    .settings-row:last-child { border-bottom: none; }
-    .settings-label { font-size: 15px; color: var(--text); }
-    .settings-input {
-      width: 180px; height: 36px; border-radius: 8px; border: none;
-      background: var(--elevated); color: var(--text); padding: 0 12px; font-size: 14px;
-      outline: none; text-align: right; font-family: inherit;
-    }
-    .settings-input:focus { box-shadow: 0 0 0 1px var(--blue); }
-    .settings-value { font-size: 14px; color: var(--text-2); }
-    .logout-btn { width: 100%; margin-top: 12px; }
-
     /* ===== Toast ===== */
     .toast-container { position: fixed; top: 60px; left: 50%; transform: translateX(-50%); z-index: 9500; pointer-events: none; }
     .toast {
-      background: var(--elevated); border: 0.5px solid var(--border); border-radius: var(--radius-sm);
+      background: var(--elevated); border: 0.5px solid var(--border); border-radius: 10px;
       padding: 12px 24px; font-size: 14px; color: var(--text);
       box-shadow: 0 8px 32px rgba(0,0,0,0.5);
       opacity: 0; transform: translateY(-10px); transition: all 0.3s ease; pointer-events: none;
@@ -350,9 +492,14 @@
     @media (min-width: 768px) {
       .sidebar { display: flex; flex-direction: column; }
       .tab-bar { display: none; }
+      .app-header { display: none; }
       .tab-content { padding-bottom: 0; }
       .tab-panel { max-width: 600px; margin: 0 auto; padding: 32px 20px; }
       .main-content { background: var(--bg); }
+      .settings-panel { max-width: 380px; }
+    }
+    @media (max-width: 767px) {
+      .sidebar { display: none !important; }
     }
   </style>
 </head>
@@ -360,21 +507,21 @@
 <div id="app">
   <!-- Splash Screen -->
   <div class="splash" id="splash">
-    <div class="splash-logo">知音</div>
-    <div class="splash-sub">另一个懂你的自己</div>
+    <img src="/icons/icon-192.png" alt="知音">
+    <div class="splash-text">知音</div>
   </div>
 
   <!-- Login Page -->
-  <div class="login-page" id="loginPage">
-    <div class="login-title">欢迎使用知音</div>
+  <div class="login-page hidden" id="loginPage">
+    <div class="login-title">知音</div>
     <div class="login-subtitle">另一个懂你的自己</div>
     <div class="login-form">
       <div class="login-card">
-        <input class="login-input" id="loginUsername" type="text" placeholder="用户名" maxlength="20">
+        <input class="login-input" id="loginUsername" type="text" placeholder="知音号（字母/数字/下划线）" maxlength="20">
         <input class="login-input" id="loginPassword" type="password" placeholder="密码">
       </div>
-      <button class="login-btn" id="loginBtn" onclick="doLogin()">登录</button>
-      <button class="login-btn" style="margin-top:10px;background:var(--green)" id="registerBtn" onclick="doRegister()">注册新账号</button>
+      <button class="login-btn" style="background:var(--blue)" id="loginBtn" onclick="doLogin()">登录</button>
+      <button class="login-btn" style="margin-top:10px;background:var(--green)" id="registerBtn" onclick="doRegister()">注册</button>
     </div>
   </div>
 
@@ -389,55 +536,64 @@
       <div class="ob-bar"><div class="fill"></div></div>
     </div>
     <div class="ob-content">
+      <!-- Step 0: Intro - 另一个你 -->
       <div class="ob-step active" data-step="0">
-        <div class="ob-icon"><img src="/icons/icon-192.png" style="width:72px;height:72px;border-radius:16px"></div>
+        <div class="ob-icon"><svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#0a84ff" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 10-16 0"/><path d="M15 11l3 3m0-3l-3 3" opacity="0.5"/></svg></div>
         <div class="ob-title">另一个你</div>
         <div class="ob-desc">知音是你的数字分身——用你的方式接听来电、替你处理事务</div>
       </div>
+      <!-- Step 1: Intro - 教知音成为你 -->
       <div class="ob-step" data-step="1">
         <div class="ob-icon"><svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#0a84ff" stroke-width="1.5"><path d="M12 2a4 4 0 014 4c0 2-2 3-2 6h-4c0-3-2-4-2-6a4 4 0 014-4z"/><path d="M10 18h4"/><path d="M10 22h4"/><circle cx="12" cy="6" r="1" fill="#0a84ff"/></svg></div>
         <div class="ob-title">教知音成为你</div>
         <div class="ob-desc">告诉知音你的习惯和偏好，它会越来越像你</div>
       </div>
+      <!-- Step 2: Intro - 替你打电话 -->
       <div class="ob-step" data-step="2">
         <div class="ob-icon"><svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#0a84ff" stroke-width="1.5"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/><path d="M14.05 2a9 9 0 018 7.94" opacity="0.5"/><path d="M14.05 6a5 5 0 014 3.94" opacity="0.5"/></svg></div>
         <div class="ob-title">替你打电话</div>
         <div class="ob-desc">告诉知音你要说什么，它以你的身份拨给对方</div>
       </div>
+      <!-- Step 3: Name -->
       <div class="ob-step" data-step="3">
-        <div class="ob-icon"><svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#0a84ff" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 10-16 0"/><path d="M12 12v2" opacity="0.3"/></svg></div>
+        <div class="ob-icon"><svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#0a84ff" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 10-16 0"/></svg></div>
         <div class="ob-title">你怎么称呼？</div>
         <div class="ob-desc">知音会以这个身份与对方沟通</div>
         <input class="ob-input" id="obName" placeholder="请输入你的称呼">
       </div>
+      <!-- Step 4: Voice -->
       <div class="ob-step" data-step="4">
         <div class="ob-icon"><svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#0a84ff" stroke-width="1.5"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></div>
         <div class="ob-title">选一个声音代表你</div>
         <div class="ob-desc">知音会用这个声音替你接打电话</div>
-        <div style="width:100%;max-width:320px;margin-top:24px;text-align:left">
-          <label style="display:flex;align-items:center;gap:10px;padding:14px 16px;background:var(--surface);border-radius:12px;margin-bottom:8px;cursor:pointer">
+        <div style="width:100%;max-width:320px;margin-top:24px" id="voiceCards">
+          <div class="ob-voice-card selected" data-voice="v-male-W1tH9jVc" onclick="selectVoice(this)">
             <input type="radio" name="obVoice" value="v-male-W1tH9jVc" checked style="accent-color:var(--blue)">
-            <span style="font-size:15px">自然男声</span>
-          </label>
-          <label style="display:flex;align-items:center;gap:10px;padding:14px 16px;background:var(--surface);border-radius:12px;margin-bottom:8px;cursor:pointer">
+            <div class="voice-info"><div class="voice-name">自然男声</div><div class="voice-desc">温暖平和，适合日常沟通</div></div>
+            <button class="voice-preview" onclick="event.stopPropagation();showToast('试听功能开发中')">试听</button>
+          </div>
+          <div class="ob-voice-card" data-voice="v-female-qingxin" onclick="selectVoice(this)">
             <input type="radio" name="obVoice" value="v-female-qingxin" style="accent-color:var(--blue)">
-            <span style="font-size:15px">清新女声</span>
-          </label>
-          <label style="display:flex;align-items:center;gap:10px;padding:14px 16px;background:var(--surface);border-radius:12px;margin-bottom:8px;cursor:pointer">
+            <div class="voice-info"><div class="voice-name">清新女声</div><div class="voice-desc">清脆明亮，轻松亲切</div></div>
+            <button class="voice-preview" onclick="event.stopPropagation();showToast('试听功能开发中')">试听</button>
+          </div>
+          <div class="ob-voice-card" data-voice="v-male-chenshu" onclick="selectVoice(this)">
             <input type="radio" name="obVoice" value="v-male-chenshu" style="accent-color:var(--blue)">
-            <span style="font-size:15px">沉稳男声</span>
-          </label>
-          <label style="display:flex;align-items:center;gap:10px;padding:14px 16px;background:var(--surface);border-radius:12px;margin-bottom:8px;cursor:pointer">
+            <div class="voice-info"><div class="voice-name">沉稳男声</div><div class="voice-desc">低沉有力，沉着可靠</div></div>
+            <button class="voice-preview" onclick="event.stopPropagation();showToast('试听功能开发中')">试听</button>
+          </div>
+          <div class="ob-voice-card" data-voice="v-female-wenrou" onclick="selectVoice(this)">
             <input type="radio" name="obVoice" value="v-female-wenrou" style="accent-color:var(--blue)">
-            <span style="font-size:15px">温柔女声</span>
-          </label>
-          <div style="text-align:center;margin-top:12px;font-size:13px;color:var(--text-3)">声音克隆即将上线</div>
+            <div class="voice-info"><div class="voice-name">温柔女声</div><div class="voice-desc">柔和细腻，温暖人心</div></div>
+            <button class="voice-preview" onclick="event.stopPropagation();showToast('试听功能开发中')">试听</button>
+          </div>
         </div>
       </div>
+      <!-- Step 5: Install PWA -->
       <div class="ob-step" data-step="5">
         <div class="ob-icon"><svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#0a84ff" stroke-width="1.5"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/><path d="M8 6h8"/><path d="M8 10h8"/></svg></div>
         <div class="ob-title">把知音放到桌面</div>
-        <div class="ob-desc">安装后即使不开网页，来电也会弹通知——像接电话一样</div>
+        <div class="ob-desc">安装后即使不开网页，来电也会弹通知</div>
         <button class="ob-input" id="obInstallBtn" onclick="triggerPWAInstall()" style="margin-top:24px;background:var(--blue);color:#fff;border:none;font-size:15px;font-weight:600;cursor:pointer;height:48px;border-radius:12px;width:100%;max-width:300px">安装到桌面</button>
         <div style="margin-top:12px;font-size:13px;color:var(--text-3)">也可以稍后在设置中安装</div>
       </div>
@@ -446,6 +602,22 @@
       <button class="ob-skip" id="obBackBtn" onclick="prevOnboarding()" style="display:none">上一步</button>
       <button class="ob-skip" onclick="skipOnboarding()">跳过</button>
       <button class="ob-next" id="obNextBtn" onclick="nextOnboarding()">下一步</button>
+    </div>
+  </div>
+
+  <!-- First Conversation -->
+  <div class="first-convo hidden" id="firstConvo">
+    <div class="fc-header">
+      <div class="fc-header-title">认识你的知音</div>
+      <button class="fc-header-skip" onclick="skipFirstConvo()">跳过</button>
+    </div>
+    <div class="fc-messages" id="fcMessages"></div>
+    <div id="fcStartBtnWrap" style="display:none">
+      <button class="fc-start-btn" onclick="skipFirstConvo()">开始使用知音</button>
+    </div>
+    <div class="fc-input-bar">
+      <input class="fc-input" id="fcInput" placeholder="输入消息..." onkeydown="if(event.key==='Enter')sendFirstConvoMsg()">
+      <button class="fc-send" onclick="sendFirstConvoMsg()">&#8593;</button>
     </div>
   </div>
 
@@ -459,7 +631,7 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
           <span>首页</span>
         </button>
-        <button class="sidebar-item" data-tab="panelTasks" onclick="switchTab(this)">
+        <button class="sidebar-item" data-tab="panelDial" onclick="switchTab(this)">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/></svg>
           <span>拨出</span>
         </button>
@@ -467,153 +639,88 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2a4 4 0 014 4c0 2-2 3-2 6h-4c0-3-2-4-2-6a4 4 0 014-4z"/><path d="M10 18h4"/><path d="M10 22h4"/></svg>
           <span>塑造</span>
         </button>
-        <button class="sidebar-item" data-tab="panelProfile" onclick="switchTab(this)">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 10-16 0"/></svg>
-          <span>我的</span>
-        </button>
       </nav>
+      <div class="sidebar-bottom">
+        <button class="sidebar-avatar-btn" onclick="openSettings()">
+          <div class="avatar-circle" id="sidebarAvatarInitials">?</div>
+          <span>设置</span>
+        </button>
+      </div>
     </aside>
 
     <!-- Main Content -->
     <div class="main-content">
+      <!-- Mobile Header -->
+      <div class="app-header">
+        <div class="app-header-title">知音</div>
+        <button class="app-header-avatar" id="headerAvatar" onclick="openSettings()">?</button>
+      </div>
+
       <div class="tab-content">
         <!-- Tab 1: Home -->
         <div class="tab-panel active" id="panelHome">
-          <div class="card id-card">
-            <div class="id-card-left">
-              <div class="id-card-label">你的知音来电链接</div>
-              <div class="id-card-url" id="callLink">加载中...</div>
+          <div class="status-card">
+            <div class="status-avatar" id="homeAvatar">?</div>
+            <div class="status-info">
+              <div class="status-online"><div class="status-dot"></div><span>在线守护中</span></div>
             </div>
-            <button class="copy-btn" onclick="copyCallLink()">
-              <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
-            </button>
           </div>
-          <div class="status-indicator">
-            <div class="status-dot"></div>
-            <div class="status-text">知音在线，随时替你接听</div>
+          <div class="grouped-card">
+            <div class="id-row">
+              <div>
+                <div class="id-label">我的知音号</div>
+                <div class="id-value" id="myZhiyinId">加载中...</div>
+              </div>
+              <button class="copy-btn" onclick="copyZhiyinId()">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+              </button>
+            </div>
           </div>
           <div class="section-header">通话记录</div>
           <div id="callList"></div>
         </div>
 
-        <!-- Tab 2: Tasks -->
-        <div class="tab-panel" id="panelTasks">
-          <!-- 通讯录 -->
+        <!-- Tab 2: Dial -->
+        <div class="tab-panel" id="panelDial">
           <div class="section-header-row">
             <span class="section-header">通讯录</span>
-            <button style="background:none;border:none;color:var(--blue);font-size:13px;font-weight:500;cursor:pointer" onclick="showAddFriend()">+ 添加</button>
+            <button style="background:none;border:none;color:var(--blue);font-size:13px;font-weight:500;cursor:pointer;font-family:inherit" onclick="showAddFriend()">+ 添加</button>
           </div>
-          <div class="grouped-card" id="friendsList" style="padding:4px 16px"></div>
 
           <!-- 添加好友弹层 -->
           <div id="addFriendBox" style="display:none;margin-bottom:16px">
             <div class="card" style="padding:12px">
               <div style="display:flex;gap:8px">
-                <input class="input" id="searchFriendInput" placeholder="输入对方用户名" style="flex:1">
+                <input class="input" id="searchFriendInput" placeholder="输入对方知音号" style="flex:1">
                 <button class="btn btn-primary btn-sm" onclick="doAddFriend()">添加</button>
               </div>
               <div id="searchFriendResult" style="margin-top:8px;font-size:13px;color:var(--text-3)"></div>
             </div>
           </div>
 
-          <!-- 拨出表单 -->
-          <div class="section-header">让知音替你打个电话</div>
-          <div class="card task-form">
-            <input class="input" id="taskTarget" placeholder="打给谁">
-            <textarea class="textarea" id="taskInstruction" placeholder="你要说什么事"></textarea>
-            <button class="btn btn-primary" style="width:100%" onclick="createTask()" id="createTaskBtn">拨出</button>
+          <div class="grouped-card" id="friendsList"></div>
+
+          <div style="margin-top:24px">
+            <button style="background:none;border:none;color:var(--blue);font-size:14px;cursor:pointer;font-family:inherit" onclick="showNewDial()">拨新号码</button>
+            <div id="newDialBox" style="display:none;margin-top:12px">
+              <div class="card" style="padding:12px">
+                <input class="input" id="taskTarget" placeholder="对方知音号" style="margin-bottom:10px">
+                <textarea class="textarea" id="taskInstruction" placeholder="你要说什么事"></textarea>
+                <button class="btn btn-primary" style="width:100%;margin-top:12px" onclick="createTask()" id="createTaskBtn">拨出</button>
+              </div>
+            </div>
           </div>
-          <div class="section-header">拨出记录</div>
-          <div id="taskList"></div>
         </div>
 
         <!-- Tab 3: Shaping -->
         <div class="tab-panel" id="panelShaping">
-          <div class="section-header">塑造知音</div>
-          <div class="card">
-            <div class="shaping-input-group">
-              <textarea class="textarea" id="shapingInput" placeholder="告诉知音你的偏好...&#10;例如：如果是快递电话，直接让对方放驿站"></textarea>
-              <button class="btn btn-primary" onclick="addShaping()" id="addShapingBtn" style="height:60px">教给知音</button>
+          <div class="shaping-chat">
+            <div class="shaping-messages" id="shapingMessages"></div>
+            <div class="shaping-input-bar">
+              <input id="shapingChatInput" placeholder="告诉知音你的偏好..." onkeydown="if(event.key==='Enter')sendShaperMessage()">
+              <button onclick="sendShaperMessage()">&#8593;</button>
             </div>
           </div>
-          <div class="knowledge-group">
-            <div class="section-header">知识库</div>
-            <div class="card">
-              <div class="knowledge-input-row">
-                <input class="input" id="knowledgeInput" placeholder="添加知识条目...">
-                <button class="btn btn-primary btn-sm" onclick="addKnowledge()" id="addKnowledgeBtn">添加</button>
-              </div>
-            </div>
-          </div>
-          <div class="section-header">知音已经学会的</div>
-          <div class="grouped-card" id="shapingList" style="padding:0"></div>
-        </div>
-
-        <!-- Tab 4: Profile -->
-        <div class="tab-panel" id="panelProfile">
-          <div class="settings-group" style="margin-top:8px">
-            <div class="settings-group-title">个人信息</div>
-            <div class="settings-card">
-              <div class="settings-row">
-                <span class="settings-label">姓名</span>
-                <input class="settings-input" id="profileName" placeholder="未设置">
-              </div>
-              <div class="settings-row">
-                <span class="settings-label">称呼</span>
-                <input class="settings-input" id="profileNickname" placeholder="未设置">
-              </div>
-              <div class="settings-row">
-                <span class="settings-label">职位</span>
-                <input class="settings-input" id="profileTitle" placeholder="未设置">
-              </div>
-              <div class="settings-row">
-                <span class="settings-label">公司</span>
-                <input class="settings-input" id="profileCompany" placeholder="未设置">
-              </div>
-            </div>
-          </div>
-          <div class="settings-group">
-            <div class="settings-group-title">音色设置</div>
-            <div class="settings-card">
-              <div class="settings-row">
-                <span class="settings-label">声音模式</span>
-                <select class="settings-input" id="voiceMode" onchange="toggleVoiceOptions()">
-                  <option value="preset">选择预设音色</option>
-                  <option value="clone">克隆我的声音</option>
-                </select>
-              </div>
-              <div class="settings-row" id="presetVoiceRow">
-                <span class="settings-label">预设音色</span>
-                <select class="settings-input" id="voicePreset">
-                  <option value="v-male-W1tH9jVc">自然男声</option>
-                  <option value="v-female-qingxin">清新女声</option>
-                  <option value="v-male-chenshu">沉稳男声</option>
-                  <option value="v-female-wenrou">温柔女声</option>
-                </select>
-              </div>
-              <div class="settings-row" id="cloneVoiceRow" style="display:none">
-                <span class="settings-label">克隆音色</span>
-                <span class="settings-value" id="cloneStatus">未上传</span>
-              </div>
-              <div id="cloneUploadRow" style="display:none;padding:12px 16px">
-                <p style="font-size:12px;color:var(--text-3);margin-bottom:8px">上传一段 10-30 秒的语音录音，知音将学习你的声音</p>
-                <input type="file" id="voiceFile" accept="audio/*" style="font-size:13px;color:var(--text-2)">
-                <button class="btn btn-primary" style="margin-top:8px;width:100%;height:36px;font-size:13px" onclick="uploadVoiceClone()">上传并克隆</button>
-              </div>
-            </div>
-          </div>
-          <div class="settings-group">
-            <div class="settings-group-title">通知方式</div>
-            <div class="settings-card">
-              <div class="settings-row">
-                <span class="settings-label">当前方式</span>
-                <span class="settings-value" id="notifyMethod">浏览器推送</span>
-              </div>
-            </div>
-          </div>
-          <button class="btn btn-primary" style="width:100%;margin-bottom:12px" onclick="saveProfile()" id="saveProfileBtn">保存设置</button>
-          <button class="btn btn-outline" style="width:100%;margin-bottom:12px" onclick="shareInvite()">邀请朋友一起用知音</button>
-          <button class="btn btn-danger logout-btn" onclick="doLogout()">退出登录</button>
         </div>
       </div>
 
@@ -623,7 +730,7 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
           <span>首页</span>
         </button>
-        <button class="tab-item" data-tab="panelTasks" onclick="switchTab(this)">
+        <button class="tab-item" data-tab="panelDial" onclick="switchTab(this)">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/></svg>
           <span>拨出</span>
         </button>
@@ -631,12 +738,88 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2a4 4 0 014 4c0 2-2 3-2 6h-4c0-3-2-4-2-6a4 4 0 014-4z"/><path d="M10 18h4"/><path d="M10 22h4"/></svg>
           <span>塑造</span>
         </button>
-        <button class="tab-item" data-tab="panelProfile" onclick="switchTab(this)">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 10-16 0"/></svg>
-          <span>我的</span>
-        </button>
       </nav>
     </div>
+  </div>
+
+  <!-- Settings Overlay -->
+  <div class="settings-overlay" id="settingsOverlay">
+    <div class="settings-backdrop" onclick="closeSettings()"></div>
+    <div class="settings-panel">
+      <div class="settings-panel-header">
+        <div class="settings-panel-title">设置</div>
+        <button class="settings-panel-close" onclick="closeSettings()">完成</button>
+      </div>
+      <div class="settings-group">
+        <div class="settings-group-title">个人信息</div>
+        <div class="settings-card">
+          <div class="settings-row">
+            <span class="settings-label">姓名</span>
+            <input class="settings-input" id="profileName" placeholder="未设置">
+          </div>
+          <div class="settings-row">
+            <span class="settings-label">称呼</span>
+            <input class="settings-input" id="profileNickname" placeholder="未设置">
+          </div>
+          <div class="settings-row">
+            <span class="settings-label">职位</span>
+            <input class="settings-input" id="profileTitle" placeholder="未设置">
+          </div>
+          <div class="settings-row">
+            <span class="settings-label">公司</span>
+            <input class="settings-input" id="profileCompany" placeholder="未设置">
+          </div>
+        </div>
+      </div>
+      <div class="settings-group">
+        <div class="settings-group-title">音色</div>
+        <div class="settings-card">
+          <div class="settings-row">
+            <span class="settings-label">当前音色</span>
+            <span class="settings-value" id="currentVoiceLabel">自然男声</span>
+          </div>
+          <div class="settings-row">
+            <span class="settings-label">预设音色</span>
+            <select class="settings-input" id="voicePreset" style="width:140px">
+              <option value="v-male-W1tH9jVc">自然男声</option>
+              <option value="v-female-qingxin">清新女声</option>
+              <option value="v-male-chenshu">沉稳男声</option>
+              <option value="v-female-wenrou">温柔女声</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="settings-group">
+        <div class="settings-group-title">我的知音号</div>
+        <div class="settings-card">
+          <div class="settings-row">
+            <span class="settings-label" id="settingsZhiyinId" style="font-family:'SF Mono',monospace;color:var(--blue)">-</span>
+            <button class="copy-btn" onclick="copyZhiyinId()">
+              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="settings-group">
+        <div class="settings-group-title">我的名片</div>
+        <div class="settings-card">
+          <button class="settings-row-btn" style="color:var(--blue);font-weight:500" onclick="shareInvite()">分享给朋友</button>
+        </div>
+      </div>
+      <button class="btn btn-primary" style="width:100%;margin-bottom:12px" onclick="saveProfile()" id="saveProfileBtn">保存设置</button>
+      <button class="settings-row-btn" style="color:var(--red);font-size:16px;text-align:center;width:100%;padding:16px 0;border:none" onclick="doLogout()">退出登录</button>
+    </div>
+  </div>
+
+  <!-- Dial Panel (slide-up for calling a contact) -->
+  <div class="dial-overlay" id="dialPanelOverlay" onclick="closeDialPanel()"></div>
+  <div class="dial-panel" id="dialPanel">
+    <div class="dial-panel-header">
+      <div class="dial-panel-title" id="dialPanelTitle">拨出</div>
+      <button class="dial-panel-close" onclick="closeDialPanel()">取消</button>
+    </div>
+    <textarea class="textarea" id="dialPanelInstruction" placeholder="你要说什么事" style="margin-bottom:12px"></textarea>
+    <button class="btn btn-primary" style="width:100%" onclick="dialFromPanel()">拨出</button>
   </div>
 
   <!-- Call Modal -->
@@ -645,18 +828,18 @@
     <div class="call-modal-title" id="callModalTitle">来电</div>
     <div class="call-modal-sub" id="callModalSub">知音正在替你接听...</div>
     <div class="call-modal-actions">
-      <button class="call-action-btn call-decline" onclick="declineCall()">✕</button>
-      <button class="call-action-btn call-accept" onclick="acceptCall()">✓</button>
+      <button class="call-action-btn call-decline" onclick="declineCall()">&#10005;</button>
+      <button class="call-action-btn call-accept" onclick="acceptCall()">&#10003;</button>
     </div>
   </div>
 
-  <!-- Dialing Overlay (拨出动画) -->
+  <!-- Dialing Overlay -->
   <div class="call-modal" id="dialingOverlay">
     <div class="call-modal-icon" style="animation:ring 1.5s ease infinite">📞</div>
     <div class="call-modal-title" id="dialingName">拨出中...</div>
     <div class="call-modal-sub" id="dialingStatus">正在呼叫</div>
     <div style="margin-top:32px">
-      <button class="call-action-btn call-decline" onclick="cancelDialing()" style="width:56px;height:56px;border-radius:50%;border:none;background:var(--red);color:#fff;font-size:20px;cursor:pointer">✕</button>
+      <button class="call-action-btn call-decline" onclick="cancelDialing()" style="width:56px;height:56px">&#10005;</button>
     </div>
     <div id="dialingResult" style="margin-top:24px;display:none;text-align:center">
       <p id="dialingResultText" style="font-size:15px;color:var(--text-2);margin-bottom:16px"></p>
@@ -671,7 +854,7 @@
 
 <script src="/TRTC.js"></script>
 <script>
-// ===== PWA Install Prompt (必须最早注册) =====
+// ===== PWA Install Prompt =====
 let deferredInstallPrompt = null;
 window.addEventListener('beforeinstallprompt', (e) => {
   e.preventDefault();
@@ -685,6 +868,9 @@ let obStep = 0;
 let profile = {};
 let pollTimer = null;
 let currentNotification = null;
+let firstConvoCount = 0;
+let shapingHistory = [];
+let dialPanelTarget = '';
 
 // ===== Splash =====
 setTimeout(() => {
@@ -717,7 +903,7 @@ function checkAuth() {
 async function doLogin() {
   const username = document.getElementById('loginUsername').value.trim();
   const password = document.getElementById('loginPassword').value.trim();
-  if (!username || !password) { showToast('请填写用户名和密码'); return; }
+  if (!username || !password) { showToast('请填写知音号和密码'); return; }
   const btn = document.getElementById('loginBtn');
   setLoading(btn, true);
   try {
@@ -744,8 +930,8 @@ async function doLogin() {
 async function doRegister() {
   const username = document.getElementById('loginUsername').value.trim();
   const password = document.getElementById('loginPassword').value.trim();
-  if (!username || !password) { showToast('请填写用户名和密码'); return; }
-  if (username.length < 2) { showToast('用户名至少 2 个字符'); return; }
+  if (!username || !password) { showToast('请填写知音号和密码'); return; }
+  if (username.length < 2) { showToast('知音号至少 2 个字符'); return; }
   if (password.length < 4) { showToast('密码至少 4 位'); return; }
   const btn = document.getElementById('registerBtn');
   setLoading(btn, true);
@@ -784,58 +970,48 @@ function updateObProgress() {
   });
   document.querySelectorAll('.ob-step').forEach((s, i) => s.classList.toggle('active', i === obStep));
   document.getElementById('obNextBtn').textContent = obStep === 5 ? '开始使用' : '下一步';
-  // 上一步按钮：第一步时隐藏
   document.getElementById('obBackBtn').style.display = obStep > 0 ? 'inline-block' : 'none';
 }
 
 function prevOnboarding() {
-  if (obStep > 0) {
-    obStep--;
-    updateObProgress();
-  }
+  if (obStep > 0) { obStep--; updateObProgress(); }
 }
 
 function nextOnboarding() {
   if (obStep === 3) {
-    // 保存称呼
     const name = document.getElementById('obName').value.trim();
     if (name) { profile.nickname = name; }
-    obStep++;
-    updateObProgress();
+    obStep++; updateObProgress();
   } else if (obStep === 4) {
-    // 保存音色选择
     const selected = document.querySelector('input[name="obVoice"]:checked');
-    if (selected) {
-      profile.voice_id = selected.value;
-    }
-    obStep++;
-    updateObProgress();
+    if (selected) { profile.voice_id = selected.value; }
+    obStep++; updateObProgress();
   } else if (obStep === 5) {
-    // 最后一步：完成
     finishOnboarding();
   } else {
-    obStep++;
-    updateObProgress();
+    obStep++; updateObProgress();
   }
 }
 
-// PWA 安装逻辑（监听器已在脚本顶部注册）
+function selectVoice(card) {
+  document.querySelectorAll('.ob-voice-card').forEach(c => c.classList.remove('selected'));
+  card.classList.add('selected');
+  card.querySelector('input[type="radio"]').checked = true;
+}
+
 function triggerPWAInstall() {
   if (deferredInstallPrompt) {
     deferredInstallPrompt.prompt();
     deferredInstallPrompt.userChoice.then(result => {
-      if (result.outcome === 'accepted') {
-        showToast('安装成功！');
-      }
+      if (result.outcome === 'accepted') { showToast('安装成功！'); }
       deferredInstallPrompt = null;
     });
   } else {
-    // 浏览器不支持自动安装提示，给手动指引
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
     if (isIOS) {
       showToast('点击底部分享按钮 → "添加到主屏幕"');
     } else {
-      showToast('点击浏览器菜单 → "安装应用" 或 "添加到主屏幕"');
+      showToast('点击浏览器菜单 → "安装应用"');
     }
   }
 }
@@ -845,13 +1021,68 @@ function skipOnboarding() { finishOnboarding(); }
 function finishOnboarding() {
   localStorage.setItem('zs_onboarded', '1');
   document.getElementById('onboarding').classList.add('hidden');
-  // 保存 onboarding 收集的信息到后端
   const saveData = {};
   if (profile.nickname) saveData.identity = { name: profile.nickname, nickname: profile.nickname };
   if (profile.voice_id) saveData.voice = { mode: 'preset', voice_id: profile.voice_id, tts_type: 'flow', model: 'flow_01_turbo', speed: 1.0, language: 'zh' };
   if (Object.keys(saveData).length > 0) {
     fetch('/api/profile', { method: 'PUT', headers: getHeaders(), body: JSON.stringify(saveData) }).catch(() => {});
   }
+  // Show first conversation
+  showFirstConvo();
+}
+
+// ===== First Conversation =====
+function showFirstConvo() {
+  document.getElementById('firstConvo').classList.remove('hidden');
+  firstConvoCount = 0;
+  const name = profile.nickname || localStorage.getItem('zs_username') || '';
+  const greeting = name
+    ? `你好${name}，我是你的知音。让我了解你——你平时是做什么的？`
+    : '你好，我是你的知音。让我了解你——你平时是做什么的？';
+  setTimeout(() => addFcMessage(greeting, 'bot'), 500);
+}
+
+function addFcMessage(text, type) {
+  const el = document.getElementById('fcMessages');
+  const div = document.createElement('div');
+  div.className = 'fc-msg ' + type;
+  div.textContent = text;
+  el.appendChild(div);
+  el.scrollTop = el.scrollHeight;
+}
+
+async function sendFirstConvoMsg() {
+  const input = document.getElementById('fcInput');
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+  addFcMessage(text, 'user');
+  firstConvoCount++;
+
+  try {
+    const res = await fetch('/api/shaping/chat', {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ message: text })
+    });
+    if (res.ok) {
+      const data = await res.json();
+      const reply = data.reply || data.message || '我记住了。';
+      addFcMessage(reply, 'bot');
+    } else {
+      addFcMessage('我记住了，继续告诉我更多吧。', 'bot');
+    }
+  } catch(e) {
+    addFcMessage('我记住了。', 'bot');
+  }
+
+  if (firstConvoCount >= 3) {
+    document.getElementById('fcStartBtnWrap').style.display = 'block';
+  }
+}
+
+function skipFirstConvo() {
+  document.getElementById('firstConvo').classList.add('hidden');
   showMainApp();
 }
 
@@ -860,54 +1091,44 @@ function showMainApp() {
   document.getElementById('mainApp').classList.remove('hidden');
   loadProfile();
   loadCalls();
-  loadTasks();
-  loadShaping();
-  loadKnowledge();
+  loadFriends();
+  loadShapingHistory();
   startPolling();
-  subscribePush(); // 自动订阅推送
+  subscribePush();
+  updateAvatars();
 }
 
-// ===== Web Push 订阅 =====
+function updateAvatars() {
+  const name = profile?.identity?.nickname || profile?.identity?.name || localStorage.getItem('zs_username') || '?';
+  const initial = name[0] || '?';
+  document.getElementById('headerAvatar').textContent = initial;
+  document.getElementById('homeAvatar').textContent = initial;
+  document.getElementById('sidebarAvatarInitials').textContent = initial;
+}
+
+// ===== Web Push =====
 async function subscribePush() {
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
     console.log('[Push] 浏览器不支持 Web Push');
     return;
   }
-
   try {
     const reg = await navigator.serviceWorker.ready;
-    
-    // 检查是否已订阅
     let subscription = await reg.pushManager.getSubscription();
-    if (subscription) {
-      console.log('[Push] 已有订阅');
-      return;
-    }
-
-    // 请求通知权限
+    if (subscription) { console.log('[Push] 已有订阅'); return; }
     const permission = await Notification.requestPermission();
-    if (permission !== 'granted') {
-      console.log('[Push] 用户拒绝了通知权限');
-      return;
-    }
-
-    // 获取 VAPID key
+    if (permission !== 'granted') { console.log('[Push] 用户拒绝了通知权限'); return; }
     const vapidRes = await fetch('/api/push/vapid-key');
     const { publicKey } = await vapidRes.json();
-
-    // 订阅
     subscription = await reg.pushManager.subscribe({
       userVisibleOnly: true,
       applicationServerKey: urlBase64ToUint8Array(publicKey),
     });
-
-    // 发送订阅信息到后端
     await fetch('/api/push/subscribe', {
       method: 'POST',
       headers: getHeaders(),
       body: JSON.stringify({ subscription }),
     });
-
     console.log('[Push] 订阅成功');
   } catch (err) {
     console.error('[Push] 订阅失败:', err);
@@ -933,29 +1154,35 @@ function switchTab(el) {
   document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.sidebar-item').forEach(t => t.classList.remove('active'));
   el.classList.add('active');
-  // Sync both nav systems
   document.querySelectorAll(`.tab-item[data-tab="${tab}"]`).forEach(t => t.classList.add('active'));
   document.querySelectorAll(`.sidebar-item[data-tab="${tab}"]`).forEach(t => t.classList.add('active'));
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
   document.getElementById(tab).classList.add('active');
 }
 
-// ===== Home: Call Link =====
-function loadCallLink() {
-  const userId = localStorage.getItem('zs_userId');
-  const host = location.host;
-  const link = host + '/call.html?owner=' + userId;
-  document.getElementById('callLink').textContent = link;
+// ===== Settings =====
+function openSettings() {
+  document.getElementById('settingsOverlay').classList.add('show');
+}
+function closeSettings() {
+  document.getElementById('settingsOverlay').classList.remove('show');
 }
 
-function copyCallLink() {
-  const link = document.getElementById('callLink').textContent;
-  navigator.clipboard.writeText('https://' + link).then(() => showToast('已复制'));
+// ===== Home: Zhiyin ID =====
+function loadZhiyinId() {
+  const username = localStorage.getItem('zs_username') || '';
+  document.getElementById('myZhiyinId').textContent = username;
+  document.getElementById('settingsZhiyinId').textContent = username;
+}
+
+function copyZhiyinId() {
+  const username = localStorage.getItem('zs_username') || '';
+  navigator.clipboard.writeText(username).then(() => showToast('已复制知音号'));
 }
 
 // ===== Home: Calls =====
 async function loadCalls() {
-  loadCallLink();
+  loadZhiyinId();
   try {
     const res = await fetch('/api/calls', { headers: getHeaders() });
     if (!res.ok) throw new Error();
@@ -969,7 +1196,7 @@ async function loadCalls() {
 function renderCalls(calls) {
   const el = document.getElementById('callList');
   if (!calls || calls.length === 0) {
-    el.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📞</div><div class="empty-state-text">暂无通话记录</div></div>';
+    el.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📞</div><div class="empty-state-text">暂无通话记录<br><span style="font-size:13px;color:var(--text-3)">把你的知音号告诉朋友，让他们呼你试试</span></div></div>';
     return;
   }
   el.innerHTML = calls.map(c => {
@@ -984,7 +1211,7 @@ function renderCalls(calls) {
   }).join('');
 }
 
-// ===== Polling Notifications =====
+// ===== Polling =====
 function startPolling() {
   pollTimer = setInterval(pollNotifications, 3000);
   pollNotifications();
@@ -1042,9 +1269,7 @@ function declineCall() {
   showToast('已拒绝来电');
 }
 
-// ===== Tab 2: 拨出 + 通讯录 =====
-
-// --- 通讯录 ---
+// ===== Tab 2: Friends + Dial =====
 async function loadFriends() {
   try {
     const res = await fetch('/api/friends', { headers: getHeaders() });
@@ -1059,26 +1284,41 @@ async function loadFriends() {
 function renderFriends(friends) {
   const el = document.getElementById('friendsList');
   if (!friends || friends.length === 0) {
-    el.innerHTML = '<div style="padding:16px 0;text-align:center;color:var(--text-3);font-size:14px">还没有联系人<br><span style="font-size:12px">点击上方"+ 添加"邀请朋友</span></div>';
+    el.innerHTML = '<div style="padding:24px;text-align:center;color:var(--text-3);font-size:14px">添加朋友开始拨出</div>';
     return;
   }
   el.innerHTML = friends.map(f => `
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:0.5px solid var(--border)">
-      <div style="display:flex;align-items:center;gap:10px">
-        <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#667eea,#764ba2);display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff">${esc(f.nickname?.[0] || f.username?.[0] || '?')}</div>
-        <div>
-          <div style="font-size:15px;font-weight:500">${esc(f.nickname || f.username)}</div>
-          <div style="font-size:12px;color:var(--text-3)">@${esc(f.username)}</div>
-        </div>
+    <div class="friend-row">
+      <div class="friend-avatar">${esc((f.nickname || f.username || '?')[0])}</div>
+      <div class="friend-info">
+        <div class="friend-name">${esc(f.nickname || f.username)}</div>
+        <div class="friend-username">@${esc(f.username)}</div>
       </div>
-      <button onclick="callFriend('${esc(f.nickname || f.username)}')" style="width:36px;height:36px;border-radius:50%;border:none;background:rgba(48,209,88,0.12);color:var(--green);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center">📞</button>
+      <button class="friend-call-btn" onclick="openDialPanel('${esc(f.nickname || f.username)}')">📞</button>
     </div>
   `).join('');
 }
 
-function callFriend(name) {
-  document.getElementById('taskTarget').value = name;
-  document.getElementById('taskInstruction').focus();
+function openDialPanel(name) {
+  dialPanelTarget = name;
+  document.getElementById('dialPanelTitle').textContent = '拨给 ' + name;
+  document.getElementById('dialPanelInstruction').value = '';
+  document.getElementById('dialPanel').classList.add('show');
+  document.getElementById('dialPanelOverlay').classList.add('show');
+}
+
+function closeDialPanel() {
+  document.getElementById('dialPanel').classList.remove('show');
+  document.getElementById('dialPanelOverlay').classList.remove('show');
+}
+
+function dialFromPanel() {
+  const instruction = document.getElementById('dialPanelInstruction').value.trim();
+  if (!instruction) { showToast('请说一下要说什么事'); return; }
+  closeDialPanel();
+  document.getElementById('taskTarget').value = dialPanelTarget;
+  document.getElementById('taskInstruction').value = instruction;
+  createTask();
 }
 
 function showAddFriend() {
@@ -1089,7 +1329,7 @@ function showAddFriend() {
 
 async function doAddFriend() {
   const username = document.getElementById('searchFriendInput').value.trim();
-  if (!username) { showToast('请输入用户名'); return; }
+  if (!username) { showToast('请输入知音号'); return; }
   try {
     const res = await fetch('/api/friends/add', {
       method: 'POST',
@@ -1098,10 +1338,10 @@ async function doAddFriend() {
     });
     const data = await res.json();
     if (data.error) {
-      document.getElementById('searchFriendResult').textContent = data.error;
-      // 用户不存在时引导邀请
       if (data.error === '用户不存在') {
-        document.getElementById('searchFriendResult').innerHTML = 'TA 还没有知音，<span style="color:var(--blue);cursor:pointer" onclick="inviteFriend()">邀请 TA</span>';
+        document.getElementById('searchFriendResult').innerHTML = 'TA还没有知音，<span style="color:var(--blue);cursor:pointer" onclick="inviteFriend()">邀请TA</span>';
+      } else {
+        document.getElementById('searchFriendResult').textContent = data.error;
       }
       return;
     }
@@ -1121,36 +1361,12 @@ async function inviteFriend() {
   } catch { showToast('获取邀请链接失败'); }
 }
 
-// --- 拨出任务 ---
-async function loadTasks() {
-  loadFriends(); // 同时加载通讯录
-  try {
-    const res = await fetch('/api/outbound', { headers: getHeaders() });
-    if (!res.ok) throw new Error();
-    const tasks = await res.json();
-    renderTasks(tasks);
-  } catch(e) {
-    renderTasks([]);
-  }
+function showNewDial() {
+  const box = document.getElementById('newDialBox');
+  box.style.display = box.style.display === 'none' ? 'block' : 'none';
 }
 
-function renderTasks(tasks) {
-  const el = document.getElementById('taskList');
-  if (!tasks || tasks.length === 0) {
-    el.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📋</div><div class="empty-state-text">暂无拨出任务</div></div>';
-    return;
-  }
-  el.innerHTML = tasks.map(t => {
-    const status = t.status === 'completed' ? 'badge-green' : t.status === 'active' ? 'badge-orange' : 'badge-blue';
-    const statusText = t.status === 'completed' ? '已完成' : t.status === 'active' ? '通话中' : '等待接听';
-    return `<div class="card task-item" onclick="copyTaskLink('${esc(t.callLink || '')}')">
-      <div class="task-top"><span class="task-name">${esc(t.targetName || '对方')}</span><span class="badge ${status}">${statusText}</span></div>
-      <div class="task-instruction">${esc(t.instruction || '')}</div>
-      ${t.callLink && t.status === 'pending' ? `<div style="font-size:12px;color:var(--blue);margin-top:4px;word-break:break-all">点击复制链接发给对方</div>` : ''}
-    </div>`;
-  }).join('');
-}
-
+// ===== Dial / Create Task =====
 let lastDialLink = '';
 
 async function createTask() {
@@ -1158,7 +1374,6 @@ async function createTask() {
   const instruction = document.getElementById('taskInstruction').value.trim();
   if (!instruction) { showToast('请说一下要说什么事'); return; }
 
-  // 显示拨号动画
   const overlay = document.getElementById('dialingOverlay');
   document.getElementById('dialingName').textContent = target || '对方';
   document.getElementById('dialingStatus').textContent = '正在呼叫...';
@@ -1177,9 +1392,7 @@ async function createTask() {
 
     document.getElementById('taskTarget').value = '';
     document.getElementById('taskInstruction').value = '';
-    loadTasks();
 
-    // 延迟一秒显示结果（模拟拨号感）
     setTimeout(() => {
       document.getElementById('dialingStatus').textContent = '';
       document.getElementById('dialingResult').style.display = 'block';
@@ -1191,7 +1404,6 @@ async function createTask() {
         lastDialLink = data.callLink || '';
       }
     }, 1500);
-
   } catch(e) {
     document.getElementById('dialingStatus').textContent = '拨出失败';
     document.getElementById('dialingResult').style.display = 'block';
@@ -1213,113 +1425,72 @@ function closeDialing() {
   document.getElementById('dialingOverlay').classList.remove('show');
 }
 
-function copyTaskLink(link) {
-  if (!link) return;
-  const url = link.startsWith('http') ? link : location.origin + '/' + link;
-  navigator.clipboard.writeText(url).then(() => showToast('链接已复制'));
-}
-
-// ===== Tab 3: Shaping =====
-let shapingRules = [];
-let knowledgeItems = [];
-
-async function loadShaping() {
+// ===== Tab 3: Shaping Chat =====
+async function loadShapingHistory() {
   try {
-    const res = await fetch('/api/shaping', { headers: getHeaders() });
-    if (!res.ok) throw new Error();
-    shapingRules = await res.json();
-  } catch(e) { shapingRules = []; }
-  renderShapingList();
+    const res = await fetch('/api/shaping/history', { headers: getHeaders() });
+    if (res.ok) {
+      shapingHistory = await res.json();
+    }
+  } catch(e) { shapingHistory = []; }
+  renderShapingMessages();
 }
 
-async function loadKnowledge() {
-  try {
-    const res = await fetch('/api/knowledge', { headers: getHeaders() });
-    if (!res.ok) throw new Error();
-    knowledgeItems = await res.json();
-  } catch(e) { knowledgeItems = []; }
-  renderShapingList();
-}
-
-function renderShapingList() {
-  const el = document.getElementById('shapingList');
-  let html = '';
-  if (shapingRules.length === 0 && knowledgeItems.length === 0) {
-    html = '<div class="empty-state" style="padding:24px"><div class="empty-state-text">还没有教给知音任何东西</div></div>';
-  } else {
-    shapingRules.forEach((r, i) => {
-      const text = typeof r === 'string' ? r : r.instruction || r.text || '';
-      html += `<div class="rule-item"><span class="rule-text">🎯 ${esc(text)}</span><button class="del-btn" onclick="deleteShaping(${i})">×</button></div>`;
-    });
-    knowledgeItems.forEach(k => {
-      const text = typeof k === 'string' ? k : k.text || k.content || '';
-      const id = k.id || k._id || '';
-      html += `<div class="knowledge-item"><span class="knowledge-text">📚 ${esc(text)}</span><button class="del-btn" onclick="deleteKnowledge('${esc(id)}')">×</button></div>`;
-    });
+function renderShapingMessages() {
+  const el = document.getElementById('shapingMessages');
+  if (shapingHistory.length === 0) {
+    el.innerHTML = '<div class="shaping-msg bot">有什么想告诉我的吗？比如你的习惯、偏好、或者特别在意的事。</div>';
+    return;
   }
-  el.innerHTML = html;
+  el.innerHTML = shapingHistory.map(m => {
+    const type = m.role === 'user' ? 'user' : 'bot';
+    return `<div class="shaping-msg ${type}">${esc(m.content || m.message || '')}</div>`;
+  }).join('');
+  el.scrollTop = el.scrollHeight;
 }
 
-async function addShaping() {
-  const input = document.getElementById('shapingInput');
+async function sendShaperMessage() {
+  const input = document.getElementById('shapingChatInput');
   const text = input.value.trim();
-  if (!text) { showToast('请输入塑造规则'); return; }
-  const btn = document.getElementById('addShapingBtn');
-  setLoading(btn, true);
+  if (!text) return;
+  input.value = '';
+
+  const el = document.getElementById('shapingMessages');
+  const userDiv = document.createElement('div');
+  userDiv.className = 'shaping-msg user';
+  userDiv.textContent = text;
+  el.appendChild(userDiv);
+  el.scrollTop = el.scrollHeight;
+
   try {
-    const res = await fetch('/api/shaping', {
+    const res = await fetch('/api/shaping/chat', {
       method: 'POST',
       headers: getHeaders(),
-      body: JSON.stringify({ instruction: text })
+      body: JSON.stringify({ message: text })
     });
-    if (!res.ok) throw new Error();
-    input.value = '';
-    showToast('已教给知音');
-    loadShaping();
-  } catch(e) { showToast('添加失败'); }
-  setLoading(btn, false);
+    if (res.ok) {
+      const data = await res.json();
+      const reply = data.reply || data.message || '我记住了。';
+      const botDiv = document.createElement('div');
+      botDiv.className = 'shaping-msg bot';
+      botDiv.textContent = reply;
+      el.appendChild(botDiv);
+    } else {
+      const botDiv = document.createElement('div');
+      botDiv.className = 'shaping-msg bot';
+      botDiv.textContent = '我记住了。';
+      el.appendChild(botDiv);
+    }
+  } catch(e) {
+    const botDiv = document.createElement('div');
+    botDiv.className = 'shaping-msg bot';
+    botDiv.textContent = '网络出了点问题，稍后再试。';
+    el.appendChild(botDiv);
+  }
+  el.scrollTop = el.scrollHeight;
 }
 
-async function deleteShaping(index) {
-  try {
-    const res = await fetch('/api/shaping/' + index, { method: 'DELETE', headers: getHeaders() });
-    if (!res.ok) throw new Error();
-    showToast('已删除');
-    loadShaping();
-  } catch(e) { showToast('删除失败'); }
-}
-
-async function addKnowledge() {
-  const input = document.getElementById('knowledgeInput');
-  const text = input.value.trim();
-  if (!text) { showToast('请输入知识内容'); return; }
-  const btn = document.getElementById('addKnowledgeBtn');
-  setLoading(btn, true);
-  try {
-    const res = await fetch('/api/knowledge', {
-      method: 'POST',
-      headers: getHeaders(),
-      body: JSON.stringify({ text, source: 'manual' })
-    });
-    if (!res.ok) throw new Error();
-    input.value = '';
-    showToast('已添加');
-    loadKnowledge();
-  } catch(e) { showToast('添加失败'); }
-  setLoading(btn, false);
-}
-
-async function deleteKnowledge(id) {
-  if (!id) return;
-  try {
-    const res = await fetch('/api/knowledge/' + id, { method: 'DELETE', headers: getHeaders() });
-    if (!res.ok) throw new Error();
-    showToast('已删除');
-    loadKnowledge();
-  } catch(e) { showToast('删除失败'); }
-}
-
-// ===== Tab 4: Profile =====
+// ===== Profile / Settings =====
 async function loadProfile() {
   try {
     const res = await fetch('/api/profile', { headers: getHeaders() });
@@ -1329,15 +1500,18 @@ async function loadProfile() {
     document.getElementById('profileNickname').value = profile.identity?.nickname || '';
     document.getElementById('profileTitle').value = profile.identity?.role || '';
     document.getElementById('profileCompany').value = profile.identity?.company || '';
-    document.getElementById('notifyMethod').textContent = '浏览器推送';
-    loadVoiceSettings();
+    if (profile.voice?.voice_id) {
+      document.getElementById('voicePreset').value = profile.voice.voice_id;
+      const voiceNames = { 'v-male-W1tH9jVc': '自然男声', 'v-female-qingxin': '清新女声', 'v-male-chenshu': '沉稳男声', 'v-female-wenrou': '温柔女声' };
+      document.getElementById('currentVoiceLabel').textContent = voiceNames[profile.voice.voice_id] || '自然男声';
+    }
+    updateAvatars();
   } catch(e) {}
 }
 
 async function saveProfile() {
   const btn = document.getElementById('saveProfileBtn');
   setLoading(btn, true);
-  const voiceMode = document.getElementById('voiceMode').value;
   const data = {
     identity: {
       name: document.getElementById('profileName').value.trim(),
@@ -1346,9 +1520,8 @@ async function saveProfile() {
       company: document.getElementById('profileCompany').value.trim()
     },
     voice: {
-      mode: voiceMode,
-      voice_id: voiceMode === 'preset' ? document.getElementById('voicePreset').value : (profile.voice?.clone_voice_id || ''),
-      clone_voice_id: profile.voice?.clone_voice_id || null,
+      mode: 'preset',
+      voice_id: document.getElementById('voicePreset').value,
       tts_type: 'flow',
       model: 'flow_01_turbo',
       speed: 1.0,
@@ -1362,6 +1535,8 @@ async function saveProfile() {
       body: JSON.stringify(data)
     });
     if (!res.ok) throw new Error();
+    profile = { ...profile, ...data };
+    updateAvatars();
     showToast('已保存');
   } catch(e) { showToast('保存失败'); }
   setLoading(btn, false);
@@ -1387,38 +1562,6 @@ async function shareInvite() {
       navigator.clipboard.writeText(link).then(() => showToast('邀请链接已复制'));
     }
   } catch { showToast('获取邀请链接失败'); }
-}
-
-// ===== Voice Settings =====
-function toggleVoiceOptions() {
-  const mode = document.getElementById('voiceMode').value;
-  document.getElementById('presetVoiceRow').style.display = mode === 'preset' ? 'flex' : 'none';
-  document.getElementById('cloneVoiceRow').style.display = mode === 'clone' ? 'flex' : 'none';
-  document.getElementById('cloneUploadRow').style.display = mode === 'clone' ? 'block' : 'none';
-}
-
-function loadVoiceSettings() {
-  if (profile.voice) {
-    document.getElementById('voiceMode').value = profile.voice.mode || 'preset';
-    if (profile.voice.mode === 'preset' && profile.voice.voice_id) {
-      document.getElementById('voicePreset').value = profile.voice.voice_id;
-    }
-    if (profile.voice.clone_voice_id) {
-      document.getElementById('cloneStatus').textContent = '已克隆';
-      document.getElementById('cloneStatus').style.color = 'var(--green)';
-    }
-    toggleVoiceOptions();
-  }
-}
-
-async function uploadVoiceClone() {
-  const fileInput = document.getElementById('voiceFile');
-  if (!fileInput.files[0]) { showToast('请选择音频文件'); return; }
-  showToast('声音克隆功能开发中，敬请期待');
-  // TODO: 实际对接 TTS 声音克隆 API
-  // 1. 上传音频到后端
-  // 2. 后端调用 TTS 克隆 API 获取 clone_voice_id
-  // 3. 返回 clone_voice_id 写入 profile.voice.clone_voice_id
 }
 
 // ===== Utils =====
@@ -1458,27 +1601,20 @@ function esc(s) {
   return d.innerHTML;
 }
 
-function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
-
-// ===== Service Worker + 自动更新 =====
+// ===== Service Worker + Auto Update =====
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/sw.js').then(reg => {
-    // 每 30 秒检查一次是否有新版本
     setInterval(() => reg.update(), 30000);
-
-    // 监听新 SW 安装完成
     reg.addEventListener('updatefound', () => {
       const newWorker = reg.installing;
       newWorker.addEventListener('statechange', () => {
         if (newWorker.state === 'activated') {
-          // 新版本已激活，自动刷新页面
           window.location.reload();
         }
       });
     });
   }).catch(() => {});
 
-  // 监听 SW 发来的更新消息
   navigator.serviceWorker.addEventListener('message', (e) => {
     if (e.data?.type === 'SW_UPDATED') {
       window.location.reload();

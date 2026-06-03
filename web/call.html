@@ -4,65 +4,53 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="theme-color" content="#0a0a0a">
-  <title>知音 — 通话</title>
+  <meta name="theme-color" content="#000000">
+  <title>通话</title>
   <style>
-    :root { --bg:#0a0a0a; --card:#1c1c1e; --border:#2c2c2e; --blue:#0a84ff; --green:#30d158; --orange:#ff9f0a; --red:#ff453a; --text:#fff; --text2:#ebebf5cc; --text3:#ebebf54d; }
-    * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-    body { font-family:-apple-system,'SF Pro Display',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:32px 24px; -webkit-font-smoothing:antialiased; }
-    
-    .container { max-width:400px; width:100%; text-align:center; }
-    .avatar { width:80px; height:80px; border-radius:50%; background:linear-gradient(135deg,#667eea,#764ba2); display:flex; align-items:center; justify-content:center; margin:0 auto 16px; font-size:32px; }
-    h1 { font-size:22px; font-weight:700; margin-bottom:4px; }
-    .subtitle { font-size:14px; color:var(--text2); margin-bottom:32px; }
-    
-    .status-card { background:var(--card); border-radius:16px; padding:20px; margin-bottom:20px; border:1px solid var(--border); }
-    .status-dot { display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:8px; vertical-align:middle; }
-    .status-dot.live { background:var(--green); animation:pulse 2s infinite; }
-    .status-dot.connecting { background:var(--orange); animation:pulse 1s infinite; }
-    .status-dot.off { background:#555; }
-    @keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.4} }
-    .status-text { font-size:15px; vertical-align:middle; }
-
-    .chat-area { background:var(--card); border-radius:16px; padding:16px; margin-bottom:20px; min-height:200px; max-height:320px; overflow-y:auto; display:flex; flex-direction:column; gap:8px; border:1px solid var(--border); scroll-behavior:smooth; text-align:left; }
-    .chat-area:empty::before { content:'通话开始后对话会显示在这里'; color:var(--text3); font-size:14px; text-align:center; margin:auto; }
-    .bubble { max-width:80%; padding:10px 14px; border-radius:16px; font-size:15px; line-height:1.4; animation:fadeIn 0.2s; }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:-apple-system,'SF Pro Display',system-ui,sans-serif; background:#000; color:#fff; min-height:100vh; display:flex; flex-direction:column; -webkit-font-smoothing:antialiased; }
+    .call-screen { flex:1; display:flex; flex-direction:column; padding:60px 24px 40px; max-width:500px; margin:0 auto; width:100%; }
+    .call-header { text-align:center; margin-bottom:32px; }
+    .call-avatar { width:80px; height:80px; border-radius:50%; background:linear-gradient(135deg,#667eea,#764ba2); display:flex; align-items:center; justify-content:center; margin:0 auto 16px; font-size:28px; color:#fff; font-weight:600; }
+    .call-name { font-size:24px; font-weight:700; margin-bottom:4px; }
+    .call-status { font-size:14px; color:#8e8e93; display:flex; align-items:center; justify-content:center; gap:6px; }
+    .call-status .dot { width:8px; height:8px; border-radius:50%; }
+    .dot-green { background:#30d158; animation:pulse 2s infinite; }
+    .dot-gray { background:#8e8e93; }
+    .dot-orange { background:#ff9f0a; animation:pulse 1s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+    .chat-area { flex:1; background:#1c1c1e; border-radius:12px; padding:16px; overflow-y:auto; display:flex; flex-direction:column; gap:8px; margin-bottom:24px; scroll-behavior:smooth; }
+    .chat-area:empty::before { content:'通话开始后对话会显示在这里'; color:#8e8e93; font-size:14px; text-align:center; margin:auto; }
+    .bubble { max-width:75%; padding:10px 14px; border-radius:16px; font-size:15px; line-height:1.4; animation:fadeIn 0.2s; }
     .bubble-ai { background:rgba(10,132,255,0.12); color:#a5c5f7; align-self:flex-start; border-bottom-left-radius:4px; }
     .bubble-user { background:rgba(48,209,88,0.12); color:#9be6b4; align-self:flex-end; border-bottom-right-radius:4px; }
-    .bubble-sys { align-self:center; font-size:12px; color:var(--text3); padding:4px 12px; background:rgba(255,255,255,0.04); border-radius:12px; }
-    @keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:none} }
-
-    .btn { width:100%; padding:16px; border:none; border-radius:14px; font-size:16px; font-weight:600; cursor:pointer; transition:opacity 0.2s; position:relative; }
-    .btn:active { opacity:0.8; }
-    .btn:disabled { opacity:0.4; cursor:not-allowed; }
-    .btn-green { background:var(--green); color:#fff; }
-    .btn-red { background:var(--red); color:#fff; margin-top:10px; }
-    .btn.loading { color:transparent; }
-    .btn.loading::after { content:''; position:absolute; width:18px; height:18px; border:2px solid rgba(255,255,255,0.3); border-top-color:#fff; border-radius:50%; animation:spin 0.6s linear infinite; top:50%; left:50%; margin:-9px 0 0 -9px; }
-    @keyframes spin { to{transform:rotate(360deg)} }
-
-    .info { font-size:12px; color:var(--text3); margin-top:20px; line-height:1.6; }
-    .powered { font-size:11px; color:var(--text3); margin-top:32px; opacity:0.5; }
+    .bubble-sys { align-self:center; font-size:12px; color:#8e8e93; padding:4px 12px; background:rgba(255,255,255,0.04); border-radius:12px; }
+    @keyframes fadeIn { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:none} }
+    .call-actions { display:flex; justify-content:center; gap:32px; }
+    .action-btn { width:64px; height:64px; border-radius:50%; border:none; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:24px; transition:transform 0.2s; }
+    .action-btn:active { transform:scale(0.9); }
+    .btn-call { background:#30d158; color:#fff; }
+    .btn-end { background:#ff453a; color:#fff; }
+    .btn-call.pulse { animation:btnPulse 1.5s ease infinite; }
+    @keyframes btnPulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.05)} }
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="avatar">📞</div>
-    <h1 id="ownerName">知音</h1>
-    <p class="subtitle" id="ownerDesc">本人暂时不方便，知音替 TA 接听</p>
-
-    <div class="status-card">
-      <span class="status-dot off" id="dot"></span>
-      <span class="status-text" id="statusText">点击下方按钮开始通话</span>
+  <div class="call-screen">
+    <div class="call-header">
+      <div class="call-avatar" id="avatar">?</div>
+      <div class="call-name" id="callerName">加载中</div>
+      <div class="call-status"><div class="dot dot-gray" id="statusDot"></div><span id="statusText">点击接听开始通话</span></div>
     </div>
-
     <div class="chat-area" id="chat"></div>
-
-    <button class="btn btn-green" id="btnStart" onclick="startCall()">开始通话</button>
-    <button class="btn btn-red" id="btnEnd" onclick="endCall()" disabled>结束通话</button>
-
-    <p class="info">对麦克风说话，对方的知音会替 TA 与你沟通。<br>如有需要，会转接给本人。</p>
-    <p class="powered">Powered by 知音 Nous</p>
+    <div class="call-actions">
+      <button class="action-btn btn-call pulse" id="btnStart" onclick="startCall()">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.13.85.37 1.67.7 2.45"/></svg>
+      </button>
+      <button class="action-btn btn-end" id="btnEnd" onclick="endCall()" style="display:none">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.68 13.31a16 16 0 003.41 2.6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92v3a2 2 0 01-2.18 2A19.79 19.79 0 013.07 5.19 2 2 0 014.11 2h3a2 2 0 012 1.72c.13.85.37 1.67.7 2.45a2 2 0 01-.45 2.11z"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+      </button>
+    </div>
   </div>
 
   <script src="/TRTC.js"></script>
@@ -72,20 +60,18 @@
     const ownerUserId = params.get('owner');
     let trtc = null, taskId = null, roomId = null;
 
-    // Load owner info
+    // 加载机主信息
     if (ownerUserId) {
-      fetch(`/api/public/profile/${ownerUserId}`).then(r=>r.json()).then(p => {
-        if (p.nickname) {
-          document.getElementById('ownerName').textContent = p.nickname;
-          document.getElementById('ownerDesc').textContent = `${p.nickname}现在不方便，知音替 TA 接听`;
-        }
-      }).catch(()=>{});
+      fetch(`/api/public/profile/${ownerUserId}`).then(r => r.json()).then(p => {
+        const name = p.nickname || '对方';
+        document.getElementById('callerName').textContent = name;
+        document.getElementById('avatar').textContent = name[0];
+      }).catch(() => {});
     }
 
-    function setStatus(text, type) {
+    function setStatus(text, dotClass) {
       document.getElementById('statusText').textContent = text;
-      const dot = document.getElementById('dot');
-      dot.className = 'status-dot ' + (type || 'off');
+      document.getElementById('statusDot').className = 'dot ' + (dotClass || 'dot-gray');
     }
 
     function addBubble(type, text) {
@@ -97,19 +83,13 @@
       chat.scrollTop = chat.scrollHeight;
     }
 
-    function btnLoad(id, on) {
-      const b = document.getElementById(id);
-      b.classList.toggle('loading', on);
-      b.disabled = on;
-    }
-
     async function startCall() {
-      if (!ownerUserId) { setStatus('链接无效——缺少用户标识', 'off'); return; }
-      btnLoad('btnStart', true);
-      setStatus('正在连接...', 'connecting');
+      if (!ownerUserId) { setStatus('无效链接', 'dot-gray'); return; }
+      document.getElementById('btnStart').style.display = 'none';
+      document.getElementById('btnEnd').style.display = 'flex';
+      setStatus('连接中...', 'dot-orange');
 
       try {
-        // 1. 请求后端创建房间 + 启动AI
         const res = await fetch('/api/call/start', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -117,24 +97,18 @@
         });
         const data = await res.json();
         if (!data.success) throw new Error(data.error);
-
         taskId = data.taskId;
         roomId = data.roomId;
 
-        // 2. 获取 UserSig 进入房间
         const sigRes = await fetch(`/api/usersig/${callerId}`);
         const { sdkAppId, userId, userSig } = await sigRes.json();
-
         trtc = TRTC.create();
         await trtc.enterRoom({ sdkAppId, userId, userSig, roomId });
         await trtc.startLocalAudio({ option: { profile: 'speech' } });
 
-        setStatus('通话中 — 请说话', 'live');
-        addBubble('sys', '已接通，请说话');
-        document.getElementById('btnStart').disabled = true;
-        document.getElementById('btnEnd').disabled = false;
+        setStatus('通话中', 'dot-green');
+        addBubble('sys', '已接通');
 
-        // 3. 监听字幕
         const conversationLog = [];
         trtc.on(TRTC.EVENT.CUSTOM_MESSAGE, (event) => {
           try {
@@ -142,62 +116,33 @@
             if (msg.type === 10000 && msg.payload.end) {
               const isMe = msg.sender === callerId;
               addBubble(isMe ? 'user' : 'ai', msg.payload.text);
-              
-              // 记录对话
               conversationLog.push({ role: isMe ? 'caller' : 'nous', text: msg.payload.text });
-              
-              // AI 回复后 → 异步 rubric 评分判断是否转接
-              if (!isMe) {
-                evaluateRubric(conversationLog);
-              }
+              if (!isMe) evaluateRubric(conversationLog);
             }
           } catch {}
         });
 
-        trtc.on(TRTC.EVENT.REMOTE_AUDIO_AVAILABLE, () => {});
-
-        // 监听机主接入（远端用户进房 → 说明机主来了）
         trtc.on(TRTC.EVENT.REMOTE_USER_ENTER, (event) => {
           if (event.userId.startsWith('owner_')) {
-            addBubble('sys', '本人已接入通话');
-            setStatus('已转接给本人', 'live');
+            addBubble('sys', '本人已接入');
+            setStatus('已转接', 'dot-green');
           }
         });
-
       } catch (err) {
-        setStatus('连接失败: ' + err.message, 'off');
-        document.getElementById('btnStart').disabled = false;
+        setStatus('连接失败', 'dot-gray');
+        document.getElementById('btnStart').style.display = 'flex';
+        document.getElementById('btnEnd').style.display = 'none';
       }
-      btnLoad('btnStart', false);
     }
 
     async function endCall() {
-      if (trtc) {
-        await trtc.exitRoom();
-        trtc.destroy();
-        trtc = null;
-      }
-      setStatus('通话已结束', 'off');
+      if (trtc) { await trtc.exitRoom(); trtc.destroy(); trtc = null; }
+      setStatus('通话结束', 'dot-gray');
       addBubble('sys', '通话结束');
-      document.getElementById('btnStart').disabled = false;
-      document.getElementById('btnEnd').disabled = true;
+      document.getElementById('btnEnd').style.display = 'none';
     }
 
     let transferTriggered = false;
-    async function triggerTransfer() {
-      if (transferTriggered) return; // 只触发一次
-      transferTriggered = true;
-      addBubble('sys', '正在转接给本人，请稍候...');
-      setStatus('转接中...', 'connecting');
-      try {
-        await fetch('/api/transfer', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ taskId, roomId, urgency: 8, callerInfo: callerId }),
-        });
-      } catch {}
-    }
-
     async function evaluateRubric(log) {
       if (transferTriggered) return;
       try {
@@ -207,9 +152,14 @@
           body: JSON.stringify({ transcript: log, mode: 'inbound', ownerUserId }),
         });
         const result = await res.json();
-        console.log('[Rubric]', result);
         if (result.shouldTransfer) {
-          triggerTransfer();
+          transferTriggered = true;
+          addBubble('sys', '正在转接...');
+          await fetch('/api/transfer', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ taskId, roomId, urgency: 8, callerInfo: callerId }),
+          });
         }
       } catch {}
     }

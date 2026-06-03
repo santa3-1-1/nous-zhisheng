@@ -25,7 +25,8 @@ import {
   getUserCalls, saveUserCalls,
   getUserKnowledge, saveUserKnowledge,
   findUserByUsername, getAllUsers,
-  searchUsers, getFriends, addFriend, removeFriend
+  searchUsers, getFriends, addFriend, removeFriend,
+  updateFriendRemark, findUserByZhiyinId
 } from './auth/users.js';
 import { getVapidPublicKey, saveSubscription, pushIncomingCall, pushTransferNotify } from './push/web-push.js';
 import OpenAI from 'openai';
@@ -582,11 +583,114 @@ app.get('/api/users/search', authMiddleware, (req, res) => {
   res.json(results);
 });
 
+// --- 好友备注 ---
+app.put('/api/friends/:userId/remark', authMiddleware, (req, res) => {
+  const { remark } = req.body;
+  const result = updateFriendRemark(req.userId, req.params.userId, remark || '');
+  if (result.error) return res.status(400).json(result);
+  res.json({ success: true });
+});
+
+// --- 按知音号拨出（不需要加好友）---
+app.post('/api/call/dial', authMiddleware, async (req, res) => {
+  const { zhiyinId, instruction } = req.body;
+  if (!zhiyinId) return res.status(400).json({ error: '请输入知音号' });
+  if (!instruction) return res.status(400).json({ error: '请说明要说什么事' });
+
+  const target = findUserByZhiyinId(zhiyinId);
+  const profile = getUserProfile(req.userId);
+  const roomId = Math.floor(10000 + Math.random() * 90000);
+  const outboundId = 'ob_' + Date.now();
+  const SERVER_BASE = process.env.SERVER_BASE_URL || `http://localhost:${config.server.port}`;
+
+  outboundTasks.set(outboundId, {
+    id: outboundId,
+    instruction,
+    targetName: target ? target.nickname : zhiyinId,
+    targetUsername: zhiyinId,
+    targetUserId: target ? target.userId : null,
+    ownerUserId: req.userId,
+    ownerName: profile.identity.nickname || profile.identity.name || '',
+    roomId,
+    status: 'pending',
+    callLink: `${SERVER_BASE}/outbound.html?id=${outboundId}`,
+    taskId: null,
+    summary: null,
+    createdAt: Date.now(),
+  });
+
+  // 对方是注册用户 → Push 通知
+  if (target) {
+    if (!pendingNotifications.has(target.userId)) pendingNotifications.set(target.userId, []);
+    pendingNotifications.get(target.userId).push({
+      type: 'incoming_call',
+      outboundId, roomId,
+      callerName: profile.identity.nickname || req.username,
+      message: `${profile.identity.nickname || '有人'}有事要跟你说`,
+      timestamp: Date.now(),
+    });
+    pushIncomingCall(target.userId, {
+      callerName: profile.identity.nickname || req.username,
+      roomId, outboundId,
+      message: `${profile.identity.nickname || '有人'}有事要跟你说`,
+    }).catch(err => console.error('[Push Error]', err.message));
+  }
+
+  res.json({
+    success: true, outboundId, roomId,
+    targetExists: !!target,
+    callLink: target ? null : `${SERVER_BASE}/outbound.html?id=${outboundId}`,
+  });
+});
+
+// --- 对话式塑造 ---
+app.post('/api/shaping/chat', authMiddleware, async (req, res) => {
+  const { message } = req.body;
+  if (!message) return res.status(400).json({ error: 'message required' });
+
+  const profile = getUserProfile(req.userId);
+  const shapingHistory = profile.shaping || [];
+
+  try {
+    const response = await deepseekClient.chat.completions.create({
+      model: config.deepseek.model,
+      messages: [
+        { role: 'system', content: `你是"知音"——用户的数字分身。用户正在教你了解 TA 自己。
+你的任务：
+1. 理解用户说的内容，提取成一条简短的规则/知识
+2. 用口语化一句话确认你学到了什么
+3. 然后问下一个相关问题继续了解用户（除非用户说不聊了）
+
+保持轻松亲切，像朋友聊天。每次回复不超过2句话。
+已经学过的：${shapingHistory.join('；') || '暂无'}` },
+        { role: 'user', content: message },
+      ],
+      max_tokens: 150,
+      temperature: 0.7,
+    });
+
+    const reply = response.choices[0].message.content;
+
+    // 自动提取规则存入 shaping
+    const extracted = message.trim();
+    if (extracted.length > 2) {
+      if (!profile.shaping) profile.shaping = [];
+      profile.shaping.push(extracted);
+      saveUserProfile(req.userId, profile);
+    }
+
+    res.json({ success: true, reply, saved: extracted });
+  } catch (err) {
+    console.error('[Shaping Chat Error]', err.message);
+    res.json({ reply: '记住了。还有什么要告诉我的吗？', saved: message });
+  }
+});
+
 // --- 邀请链接 ---
 app.get('/api/invite-link', authMiddleware, (req, res) => {
   const SERVER_BASE = process.env.SERVER_BASE_URL || `http://localhost:${config.server.port}`;
   const link = `${SERVER_BASE}/invite.html?from=${req.username}`;
-  res.json({ link });
+  res.json({ link, zhiyinId: req.username });
 });
 
 // =============================================
