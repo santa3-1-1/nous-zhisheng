@@ -951,13 +951,14 @@ async function doRegister() {
     // 如果通过邀请链接注册，自动加邀请者为好友
     const inviteFrom = new URLSearchParams(location.search).get('invite');
     if (inviteFrom && inviteFrom !== username) {
-      fetch('/api/friends/add', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + data.token },
-        body: JSON.stringify({ username: inviteFrom }),
-      }).then(() => {
-        showToast('已自动添加 ' + inviteFrom + ' 为好友');
-      }).catch(() => {});
+      try {
+        await fetch('/api/friends/add', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + data.token },
+          body: JSON.stringify({ username: inviteFrom }),
+        });
+        showToast('已添加 ' + inviteFrom + ' 为好友');
+      } catch(e) {}
     }
 
     document.getElementById('loginPage').classList.add('hidden');
