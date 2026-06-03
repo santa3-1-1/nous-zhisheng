@@ -494,7 +494,7 @@ app.post('/api/outbound/create', authMiddleware, (req, res) => {
   const profile = getUserProfile(req.userId);
   const roomId = Math.floor(10000 + Math.random() * 90000);
   const outboundId = 'ob_' + Date.now();
-  const SERVER_BASE = process.env.SERVER_BASE_URL || `http://localhost:${config.server.port}`;
+  const SERVER_BASE = process.env.SERVER_BASE_URL || `https://${req.headers.host}`;
   const callLink = `${SERVER_BASE}/outbound.html?id=${outboundId}`;
 
   // 如果对方也是注册用户，查找他的 userId
@@ -601,7 +601,7 @@ app.post('/api/call/dial', authMiddleware, async (req, res) => {
   const profile = getUserProfile(req.userId);
   const roomId = Math.floor(10000 + Math.random() * 90000);
   const outboundId = 'ob_' + Date.now();
-  const SERVER_BASE = process.env.SERVER_BASE_URL || `http://localhost:${config.server.port}`;
+  const SERVER_BASE = process.env.SERVER_BASE_URL || `https://${req.headers.host}`;
 
   outboundTasks.set(outboundId, {
     id: outboundId,
@@ -645,24 +645,46 @@ app.post('/api/call/dial', authMiddleware, async (req, res) => {
 
 // --- 对话式塑造 ---
 app.post('/api/shaping/chat', authMiddleware, async (req, res) => {
-  const { message } = req.body;
+  const { message, isOnboarding } = req.body;
   if (!message) return res.status(400).json({ error: 'message required' });
 
   const profile = getUserProfile(req.userId);
   const shapingHistory = profile.shaping || [];
 
+  // 首次对话和日常塑造用不同的 prompt
+  const systemPrompt = isOnboarding
+    ? `你是"知音"——用户的数字分身。这是你们第一次对话，你要了解用户以便替 TA 接打电话。
+
+你的对话主线（按优先级）：
+1. **电话习惯**：平时什么电话会接/不接？快递外卖怎么处理？推销电话怎么应对？
+2. **重要的人**：哪些人打来必须转接给本人？（家人、领导、客户等）
+3. **工作信息**：做什么工作？公司/职位？方便告诉来电方吗？
+4. **说话风格**：对不同人（朋友/领导/陌生人）说话方式有什么区别？
+5. **底线**：绝对不能做的事？（比如不能透露的信息、不能答应的事）
+
+规则：
+- 每次只问1个问题，围绕上面的主线推进
+- 用户回答后先简短确认"记住了"，再问下一个
+- 语气像朋友聊天，轻松自然
+- 每次回复不超过2句话
+- 如果用户说不聊了/够了，就说"好的，以后随时可以继续教我"
+
+已经了解的：${shapingHistory.join('；') || '暂无'}`
+    : `你是"知音"——用户的数字分身。用户正在教你新的偏好或知识。
+
+你的任务：
+1. 理解用户说的内容
+2. 用口语化一句话确认你学到了什么
+3. 问一个相关的追问继续了解（除非用户说不聊了）
+
+保持轻松亲切。每次回复不超过2句话。
+已经学过的：${shapingHistory.join('；') || '暂无'}`;
+
   try {
     const response = await deepseekClient.chat.completions.create({
       model: config.deepseek.model,
       messages: [
-        { role: 'system', content: `你是"知音"——用户的数字分身。用户正在教你了解 TA 自己。
-你的任务：
-1. 理解用户说的内容，提取成一条简短的规则/知识
-2. 用口语化一句话确认你学到了什么
-3. 然后问下一个相关问题继续了解用户（除非用户说不聊了）
-
-保持轻松亲切，像朋友聊天。每次回复不超过2句话。
-已经学过的：${shapingHistory.join('；') || '暂无'}` },
+        { role: 'system', content: systemPrompt },
         { role: 'user', content: message },
       ],
       max_tokens: 150,
@@ -688,7 +710,8 @@ app.post('/api/shaping/chat', authMiddleware, async (req, res) => {
 
 // --- 邀请链接 ---
 app.get('/api/invite-link', authMiddleware, (req, res) => {
-  const SERVER_BASE = process.env.SERVER_BASE_URL || `http://localhost:${config.server.port}`;
+  // 优先用环境变量，否则从请求头推断
+  const SERVER_BASE = process.env.SERVER_BASE_URL || `https://${req.headers.host}`;
   const link = `${SERVER_BASE}/invite.html?from=${req.username}`;
   res.json({ link, zhiyinId: req.username });
 });

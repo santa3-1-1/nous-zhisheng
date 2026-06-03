@@ -1138,8 +1138,8 @@ function showFirstConvo() {
   firstConvoCount = 0;
   const name = profile.nickname || localStorage.getItem('zs_username') || '';
   const greeting = name
-    ? `你好${name}，我是你的知音。让我了解你——你平时是做什么的？`
-    : '你好，我是你的知音。让我了解你——你平时是做什么的？';
+    ? `你好${name}，我是你的知音。以后有电话打来我替你接——先告诉我，平时什么电话你会接，什么电话不想接？`
+    : '你好，我是你的知音。以后有电话打来我替你接——先告诉我，平时什么电话你会接，什么电话不想接？';
   setTimeout(() => addFcMessage(greeting, 'bot'), 500);
 }
 
@@ -1164,7 +1164,7 @@ async function sendFirstConvoMsg() {
     const res = await fetch('/api/shaping/chat', {
       method: 'POST',
       headers: getHeaders(),
-      body: JSON.stringify({ message: text })
+      body: JSON.stringify({ message: text, isOnboarding: true })
     });
     if (res.ok) {
       const data = await res.json();
