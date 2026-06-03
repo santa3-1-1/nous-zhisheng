@@ -1226,12 +1226,14 @@ function skipFirstConvo() {
 // ===== Main App =====
 function showMainApp() {
   document.getElementById('mainApp').classList.remove('hidden');
-  loadProfile();
-  loadCalls();
-  loadFriends();
-  loadShapingHistory();
+  refreshAll();
   startPolling();
   subscribePush();
+}
+
+// 统一数据刷新层——所有数据拉取走这里，任何写操作后调 refreshAll 或对应的单项刷新
+async function refreshAll() {
+  await Promise.all([loadProfile(), loadCalls(), loadFriends(), loadShapingHistory()]);
   updateAvatars();
 }
 
@@ -1295,8 +1297,6 @@ function switchTab(el) {
   document.querySelectorAll(`.sidebar-item[data-tab="${tab}"]`).forEach(t => t.classList.add('active'));
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
   document.getElementById(tab).classList.add('active');
-  // 切到拨出tab时刷新通讯录
-  if (tab === 'panelDial') loadFriends();
 }
 
 // ===== Settings =====
@@ -1351,9 +1351,30 @@ function renderCalls(calls) {
 }
 
 // ===== Polling =====
+let lastFriendsHash = '';
+
 function startPolling() {
-  pollTimer = setInterval(pollNotifications, 3000);
+  pollTimer = setInterval(pollCycle, 3000);
+  pollCycle();
+}
+
+async function pollCycle() {
   pollNotifications();
+  // 每次轮询也刷新好友列表（检测对方添加你）
+  refreshFriendsIfChanged();
+}
+
+async function refreshFriendsIfChanged() {
+  try {
+    const res = await fetch('/api/friends', { headers: getHeaders() });
+    if (!res.ok) return;
+    const friends = await res.json();
+    const hash = JSON.stringify(friends.map(f => f.userId).sort());
+    if (hash !== lastFriendsHash) {
+      lastFriendsHash = hash;
+      renderFriends(friends);
+    }
+  } catch(e) {}
 }
 
 async function pollNotifications() {
@@ -1414,6 +1435,7 @@ async function loadFriends() {
     const res = await fetch('/api/friends', { headers: getHeaders() });
     if (!res.ok) throw new Error();
     const friends = await res.json();
+    lastFriendsHash = JSON.stringify(friends.map(f => f.userId).sort());
     renderFriends(friends);
   } catch(e) {
     renderFriends([]);
@@ -1479,12 +1501,11 @@ async function doAddFriend() {
     if (data.error) {
       if (data.error === '用户不存在') {
         document.getElementById('searchFriendResult').innerHTML = 'TA还没有知音，<span style="color:var(--blue);cursor:pointer" onclick="inviteFriend()">邀请TA</span>';
-      } else if (data.error === '已经是好友了') {
-        document.getElementById('searchFriendResult').textContent = '已经是好友了';
-        loadFriends(); // 刷新列表确保显示
       } else {
         document.getElementById('searchFriendResult').textContent = data.error;
       }
+      // 无论什么错误都刷新一次列表（可能已经是好友但列表没显示）
+      loadFriends();
       return;
     }
     showToast('已添加');
